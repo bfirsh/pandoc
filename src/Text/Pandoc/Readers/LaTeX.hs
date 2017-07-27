@@ -1724,6 +1724,7 @@ blockCommands = M.fromList $
    -- LaTeX colors
    , ("textcolor", coloredBlock "color")
    , ("colorbox", coloredBlock "background-color")
+   , ("scalebox", tok >> blocks)
    ]
 
 
@@ -2166,4 +2167,3 @@ block = (mempty <$ spaces1)
 
 blocks :: PandocMonad m => LP m Blocks
 blocks = mconcat <$> many block
-
