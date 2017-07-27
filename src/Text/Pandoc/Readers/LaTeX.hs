@@ -1441,7 +1441,7 @@ inline = (mempty <$ comment)
      <|> (guardEnabled Ext_literate_haskell *> symbol '|' *> doLHSverb)
      <|> (str . (:[]) <$> primEscape)
      <|> regularSymbol
-     <|> (do res <- symbolIn "#^'`\"[]"
+     <|> (do res <- symbolIn "#^'`\"[]_"
              pos <- getPosition
              let s = T.unpack (untoken res)
              report $ ParsingUnescaped s pos
