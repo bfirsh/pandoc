@@ -1878,7 +1878,7 @@ letterContents = do
 figure :: PandocMonad m => LP m Blocks
 figure = try $ do
   resetCaption
-  blocks >>= addImageCaption
+  blocks >>= addImageCaption >>= addTikzImageCaption
 
 addImageCaption :: PandocMonad m => Blocks -> LP m Blocks
 addImageCaption = walkM go
@@ -1888,6 +1888,16 @@ addImageCaption = walkM go
           return $ case mbcapt of
                Just ils -> Image attr (toList ils) (src, "fig:" ++ tit)
                Nothing  -> Image attr alt (src,tit)
+        go x = return x
+
+addTikzImageCaption :: PandocMonad m => Blocks -> LP m Blocks
+addTikzImageCaption = walkM go
+  where go (RawBlock t raw)
+            | "\\begin{tikzpicture}" `isPrefixOf` raw = do
+          mbcapt <- sCaption <$> getState
+          return $ case mbcapt of
+               Just ils -> Div ("", ["tikzpicture"], []) [RawBlock t raw, Para (toList ils)]
+               Nothing  -> RawBlock t raw
         go x = return x
 
 coloredBlock :: PandocMonad m => String -> LP m Blocks
