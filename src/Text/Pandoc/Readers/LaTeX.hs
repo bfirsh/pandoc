@@ -1321,6 +1321,9 @@ inlineCommands = M.fromList $
   , ("xspace", doxspace)
   -- etoolbox
   , ("ifstrequal", ifstrequal)
+  , ("And", lit "and")
+  , ("AND", lit "and")
+  , ("tt", ttfamily)
   ]
 
 ifstrequal :: PandocMonad m => LP m Inlines
