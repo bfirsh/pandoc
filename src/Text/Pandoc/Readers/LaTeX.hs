@@ -330,9 +330,10 @@ totoks (lin,col) t =
          | otherwise ->
            Tok (lin, col) Symbol (T.singleton c) : totoks (lin, col + 1) rest
 
-  where isSpaceOrTab ' '  = True
-        isSpaceOrTab '\t' = True
-        isSpaceOrTab _    = False
+  where isSpaceOrTab ' '    = True
+        isSpaceOrTab '\t'   = True
+        isSpaceOrTab '\xa0' = True
+        isSpaceOrTab _      = False
 
 isLowerHex :: Char -> Bool
 isLowerHex x = x >= '0' && x <= '9' || x >= 'a' && x <= 'f'
