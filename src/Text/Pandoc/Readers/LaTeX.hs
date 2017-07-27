@@ -1773,6 +1773,7 @@ environments = M.fromList
    , ("alignat", mathEnvWith para (Just "aligned") "alignat")
    , ("alignat*", mathEnvWith para (Just "aligned") "alignat*")
    , ("tikzpicture", rawVerbEnv "tikzpicture")
+   , ("small", env "small" blocks)
    ]
 
 environment :: PandocMonad m => LP m Blocks
