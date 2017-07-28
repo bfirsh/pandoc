@@ -407,6 +407,11 @@ anySymbol = satisfyTok isSym
   where isSym (Tok _ Symbol _) = True
         isSym _                = False
 
+anyArg :: PandocMonad m => LP m Tok
+anyArg = satisfyTok isArg
+  where isArg (Tok _ (Arg _) _) = True
+        isArg _                 = False
+
 spaces :: PandocMonad m => LP m ()
 spaces = skipMany (satisfyTok (tokTypeIn [Comment, Spaces, Newline]))
 
@@ -1579,6 +1584,18 @@ newenvironment = do
   return (name, Macro numargs optarg startcontents,
              Macro 0 Nothing endcontents)
 
+ignoreDef :: PandocMonad m => LP m Blocks
+ignoreDef = do
+  spaces
+  command <- tokString <$> (withVerbatimMode $ anyControlSeq)
+  parameters <- toksString <$> many (spaces >> anyArg)
+  spaces
+  definition <- toksString <$> braced
+  -- TODO: ugly
+  return $ rawBlock "latex" ("\\def{" ++ command ++ parameters ++ "}{" ++ definition ++ "}")
+  where tokString = T.unpack . untoken
+        toksString = T.unpack . untokenize
+
 bracketedToks :: PandocMonad m => LP m [Tok]
 bracketedToks = do
   symbol '['
@@ -1723,6 +1740,7 @@ blockCommands = M.fromList $
    , ("colorbox", coloredBlock "background-color")
    , ("scalebox", tok >> blocks)
    , ("color", tok >> blocks)
+   , ("def", ignoreDef)
    ]
 
 
