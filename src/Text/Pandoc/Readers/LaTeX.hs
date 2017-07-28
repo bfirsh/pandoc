@@ -1486,7 +1486,7 @@ include :: PandocMonad m => LP m Blocks
 include = do
   (Tok _ (CtrlSeq name) _) <-
                     controlSeq "include" <|> controlSeq "input" <|>
-                    controlSeq "subfile" <|> controlSeq "usepackage"
+                    controlSeq "subfile" -- <|> controlSeq "usepackage"
   skipMany $ bracketed inline -- skip options
   fs <- (map trim . splitBy (==',') . T.unpack . untokenize) <$> braced
   let fs' = if name == "usepackage"
