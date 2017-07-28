@@ -2195,7 +2195,7 @@ block :: PandocMonad m => LP m Blocks
 block = (mempty <$ spaces1)
     <|> environment
     <|> include
-    <|> macroDef
+--    <|> macroDef
     <|> blockCommand
     <|> paragraph
     <|> grouped block
