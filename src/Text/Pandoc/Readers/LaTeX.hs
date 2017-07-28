@@ -955,7 +955,8 @@ simpleCiteArgs :: PandocMonad m => LP m [Citation]
 simpleCiteArgs = try $ do
   first  <- optionMaybe $ toList <$> opt
   second <- optionMaybe $ toList <$> opt
-  keys <- try $ bgroup *> (manyTill citationLabel egroup)
+  labels <- untokenize <$> braced
+  let keys = map T.unpack (T.splitOn (T.pack ",") labels)  --TODO: ugly
   let (pre, suf) = case (first  , second ) of
         (Just s , Nothing) -> (mempty, s )
         (Just s , Just t ) -> (s , t )
@@ -968,16 +969,6 @@ simpleCiteArgs = try $ do
                         , citationNoteNum = 0
                         }
   return $ addPrefix pre $ addSuffix suf $ map conv keys
-
-citationLabel :: PandocMonad m => LP m String
-citationLabel  = do
-  optional sp
-  toksToString <$>
-    (many1 (satisfyTok isWordTok <|> symbolIn bibtexKeyChar)
-          <* optional sp
-          <* optional (symbol ',')
-          <* optional sp)
-  where bibtexKeyChar = ".:;?!`'()/*@_+=-[]" :: [Char]
 
 cites :: PandocMonad m => CitationMode -> Bool -> LP m [Citation]
 cites mode multi = try $ do
