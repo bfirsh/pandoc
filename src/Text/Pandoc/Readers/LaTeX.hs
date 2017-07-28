@@ -1239,10 +1239,10 @@ inlineCommands = M.fromList $
   , ("href", (unescapeURL . toksToString <$>
                  braced <* optional sp) >>= \url ->
                    tok >>= \lab -> pure (link url "" lab))
-  , ("includegraphics", do options <- option [] keyvals
+  , ("includegraphics", do optional $ bracketed inline
                            src <- unescapeURL . T.unpack .
                                     removeDoubleQuotes . untokenize <$> braced
-                           mkImage options src)
+                           mkImage [] src)
   , ("enquote", enquote)
   , ("cite", citation "cite" NormalCitation False)
   , ("Cite", citation "Cite" NormalCitation False)
