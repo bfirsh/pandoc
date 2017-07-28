@@ -1738,8 +1738,9 @@ blockCommands = M.fromList $
    -- LaTeX colors
    , ("textcolor", coloredBlock "color")
    , ("colorbox", coloredBlock "background-color")
-   , ("scalebox", tok >> blocks)
-   , ("color", tok >> blocks)
+   , ("scalebox", braced >> blocks)
+   , ("color", braced >> blocks)
+   , ("multirow", braced >> braced >> blocks)
    , ("def", ignoreDef)
    ]
 
