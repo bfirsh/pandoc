@@ -1534,8 +1534,10 @@ newcommand = do
                              controlSeq "renewcommand" <|>
                              controlSeq "providecommand"
   optional $ symbol '*'
-  Tok _ (CtrlSeq name) txt <- withVerbatimMode $ anyControlSeq <|>
-    (symbol '{' *> spaces *> anyControlSeq <* spaces <* symbol '}')
+
+  -- TODO: ugly
+  name <- untokenize <$> (braced <|> many (withVerbatimMode $ anyControlSeq))
+
   spaces
   numargs <- option 0 $ try bracketedNum
   spaces
@@ -1545,7 +1547,7 @@ newcommand = do
   when (mtype == "newcommand") $ do
     macros <- sMacros <$> getState
     case M.lookup name macros of
-         Just _ -> report $ MacroAlreadyDefined (T.unpack txt) pos
+         Just _ -> report $ MacroAlreadyDefined (T.unpack name) pos
          Nothing -> return ()
   return (name, Macro numargs optarg contents)
 
