@@ -487,7 +487,10 @@ bgroup = try $ do
   symbol '{' <|> controlSeq "bgroup" <|> controlSeq "begingroup"
 
 egroup :: PandocMonad m => LP m Tok
-egroup = (symbol '}' <|> controlSeq "egroup" <|> controlSeq "endgroup")
+egroup = (symbol '}' <|> controlSeq "egroup" <|> controlSeq "endgroup"
+
+         -- forgive missing }  TODO: ugly
+         <|> lookAhead (end_ "document" >> return (Tok (0, 0) Spaces "")))
 
 grouped :: (PandocMonad m,  Monoid a) => LP m a -> LP m a
 grouped parser = try $ do
