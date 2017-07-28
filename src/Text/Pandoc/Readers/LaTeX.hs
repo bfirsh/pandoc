@@ -1746,6 +1746,7 @@ environments = M.fromList
    , ("tabular*", env "tabular" $ simpTable "tabular*" True)
    , ("tabularx", env "tabularx" $ simpTable "tabularx" True)
    , ("tabular", env "tabular"  $ simpTable "tabular" False)
+   , ("tabulary", env "tabulary"  $ simpTable "tabulary" True)
    , ("quote", blockQuote <$> env "quote" blocks)
    , ("quotation", blockQuote <$> env "quotation" blocks)
    , ("verse", blockQuote <$> env "verse" blocks)
@@ -2058,8 +2059,16 @@ parseAligns = try $ do
   let xAlign = AlignLeft <$ symbol 'X'
   let mAlign = AlignLeft <$ symbol 'm'
   let bAlign = AlignLeft <$ symbol 'b'
+  -- aligns from tabulary
+  let upperLAlign = AlignLeft <$ symbol 'L'
+  let upperRAlign = AlignRight <$ symbol 'R'
+  let upperCAlign = AlignCenter <$ symbol 'C'
+  let upperJAlign = AlignLeft <$ symbol 'J'
+
   let alignChar = splitWordTok *> (  cAlign <|> lAlign <|> rAlign <|> parAlign
-                                 <|> xAlign <|> mAlign <|> bAlign )
+                                 <|> xAlign <|> mAlign <|> bAlign
+                                 <|> upperLAlign <|> upperRAlign
+                                 <|> upperCAlign <|> upperJAlign)
   let alignPrefix = symbol '>' >> braced
   let alignSuffix = symbol '<' >> braced
   let colWidth = try $ do
