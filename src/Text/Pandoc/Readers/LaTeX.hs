@@ -2077,7 +2077,7 @@ amp = symbol '&'
 endOrEndOfDocument :: PandocMonad m => Text -> LP m ()
 endOrEndOfDocument name =
   -- TODO: ugly
-  end_ name <|> unexpectedEndOfDocument name
+  end_ name <|> unexpectedEndOfDocument name <?> "\\end{" ++ (T.unpack name) ++ "}"
 
 unexpectedEndOfDocument :: PandocMonad m => Text -> LP m ()
 unexpectedEndOfDocument name =
