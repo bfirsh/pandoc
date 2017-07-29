@@ -1795,6 +1795,8 @@ environments = M.fromList
    , ("alignat*", mathEnvWith para (Just "aligned") "alignat*")
    , ("tikzpicture", rawVerbEnv "tikzpicture")
    , ("small", env "small" blocks)
+   -- TODO: handle proof caption "\begin{proof}[Proof of Lemma \ref{lem:graph_path}]" (1707.08238v1)
+   , ("proof", env "proof" $ skipopts *> blocks)
    ]
 
 environment :: PandocMonad m => LP m Blocks
