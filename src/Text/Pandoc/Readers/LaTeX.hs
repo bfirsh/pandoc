@@ -292,9 +292,7 @@ totoks (lin,col) t =
                       in  Tok (lin, col) (CtrlSeq ws) ("\\" <> ws <> ss)
                           : totoks (lin,
                                  col + 1 + T.length ws + T.length ss) rest'''
-                  | d == '\t' || d == '\n' ->
-                      Tok (lin, col) Symbol ("\\")
-                      : totoks (lin, col + 1) rest
+                  | d == '\t' || d == '\n' -> totoks (lin, col + 1) rest
                   | otherwise  ->
                       Tok (lin, col) (CtrlSeq (T.singleton d)) (T.pack [c,d])
                       : totoks (lin, col + 2) rest'
