@@ -493,7 +493,7 @@ egroup :: PandocMonad m => LP m Tok
 egroup = (symbol '}' <|> controlSeq "egroup" <|> controlSeq "endgroup"
 
          -- forgive missing }  TODO: ugly
-         <|> lookAhead (end_ "document" >> return (Tok (0, 0) Spaces "")))
+         <|> (unexpectedEndOfDocument "}" >> return (Tok (0, 0) Spaces "")))
 
 grouped :: (PandocMonad m,  Monoid a) => LP m a -> LP m a
 grouped parser = try $ do
@@ -1804,7 +1804,7 @@ environment = do
     <|> rawEnv name
 
 env :: PandocMonad m => Text -> LP m a -> LP m a
-env name p = p <* end_ name
+env name p = p <* endOrEndOfDocument name
 
 rawEnv :: PandocMonad m => Text -> LP m Blocks
 rawEnv name = do
@@ -1841,7 +1841,7 @@ verbEnv :: PandocMonad m => Text -> LP m String
 verbEnv name = withVerbatimMode $ do
   skipopts
   optional blankline
-  res <- manyTill anyTok (end_ name)
+  res <- manyTill anyTok (endOrEndOfDocument name)
   return $ stripTrailingNewlines $ toksToString res
 
 fancyverbEnv :: PandocMonad m => Text -> LP m Blocks
@@ -2051,6 +2051,16 @@ lbreak = (controlSeq "\\" <|> controlSeq "tabularnewline") <* spaces
 
 amp :: PandocMonad m => LP m Tok
 amp = symbol '&'
+
+endOrEndOfDocument :: PandocMonad m => Text -> LP m ()
+endOrEndOfDocument name =
+  -- TODO: ugly
+  end_ name <|> unexpectedEndOfDocument name
+
+unexpectedEndOfDocument :: PandocMonad m => Text -> LP m ()
+unexpectedEndOfDocument name =
+  lookAhead $ end_ "document" >>
+   (report $ UnexpectedEndOfDocument $ T.unpack name)
 
 -- Split a Word into individual Symbols (for parseAligns)
 splitWordTok :: PandocMonad m => LP m ()
