@@ -1142,6 +1142,7 @@ inlineCommands = M.fromList $
   , ("textsf", extractSpaces (spanWith ("",["sans-serif"],[])) <$> tok)
   , ("textmd", extractSpaces (spanWith ("",["medium"],[])) <$> tok)
   , ("textrm", extractSpaces (spanWith ("",["roman"],[])) <$> tok)
+  , ("text", tok)
   , ("textup", extractSpaces (spanWith ("",["upright"],[])) <$> tok)
   , ("texttt", ttfamily)
   , ("sout", extractSpaces strikeout <$> tok)
