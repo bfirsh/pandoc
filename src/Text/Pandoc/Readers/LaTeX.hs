@@ -325,6 +325,16 @@ totoks (lin,col) t =
                              Tok (lin, col + 1) Symbol ("^")]
                 _ -> Tok (lin, col) Symbol ("^")
                      : totoks (lin, col + 1) rest
+         | c == '$' ->
+           case T.uncons rest of
+                Nothing -> [Tok (lin, col) Symbol "$"]
+                Just (d, rest')
+                  | d == '$' ->
+                      Tok (lin, col) Word "$$"
+                      : totoks (lin, col + 2) rest'
+                  | otherwise  ->
+                      Tok (lin, col) Symbol "$"
+                      : totoks (lin, col + 1) rest
          | otherwise ->
            Tok (lin, col) Symbol (T.singleton c) : totoks (lin, col + 1) rest
 
@@ -437,6 +447,11 @@ symbolIn cs = satisfyTok isInCs
                                        Just (c,_) -> c `elem` cs
                                        _ -> False
         isInCs _ = False
+
+matchWord :: PandocMonad m => String -> LP m Tok
+matchWord s = satisfyTok isWord
+  where isWord (Tok _ Word s') = T.unpack s' == s
+        isWord _ = False
 
 sp :: PandocMonad m => LP m ()
 sp = whitespace <|> endline
@@ -936,14 +951,17 @@ mathInline = math . trim
 dollarsMath :: PandocMonad m => LP m Inlines
 dollarsMath = do
   symbol '$'
-  display <- option False (True <$ symbol '$')
   contents <- trim . toksToString <$>
-               many (notFollowedBy (symbol '$') >> anyTok)
-  if display
-     then do
-       mathDisplay contents <$ try (symbol '$' >> symbol '$')
+              many (notFollowedBy (symbol '$') >> anyTok)
+  mathInline contents <$ (symbol '$')
+
+doubleDollarsMath :: PandocMonad m => LP m Inlines
+doubleDollarsMath = do
+  matchWord "$$"
+  contents <- trim . toksToString <$>
+              many (notFollowedBy (matchWord "$$") >> anyTok)
+  mathDisplay contents <$ try (matchWord "$$")
         <|> (guard (null contents) >> return (mathInline ""))
-     else mathInline contents <$ (symbol '$')
 
 -- citations
 
@@ -1422,6 +1440,7 @@ inline :: PandocMonad m => LP m Inlines
 inline = (mempty <$ comment)
      <|> (space  <$ whitespace)
      <|> (softbreak <$ endline)
+     <|> doubleDollarsMath
      <|> word
      <|> inlineCommand'
      <|> inlineEnvironment
