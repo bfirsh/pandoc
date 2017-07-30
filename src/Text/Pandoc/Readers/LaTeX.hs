@@ -538,6 +538,12 @@ bracketed parser = try $ do
   symbol '['
   mconcat <$> manyTill parser (symbol ']')
 
+-- TODO: ugly
+bracedDumb :: PandocMonad m => Monoid a => LP m a -> LP m a
+bracedDumb parser = try $ do
+  symbol '{'
+  mconcat <$> manyTill parser (symbol '}')
+
 dimenarg :: PandocMonad m => LP m Text
 dimenarg = try $ do
   ch  <- option False $ True <$ symbol '='
@@ -613,7 +619,7 @@ dosiunitx = do
   skipopts
   value <- tok
   valueprefix <- option "" $ bracketed tok
-  unit <- tok
+  unit <- option "" $ bracedDumb tok
   let emptyOr160 "" = ""
       emptyOr160 _  = "\160"
   return . mconcat $ [valueprefix,
