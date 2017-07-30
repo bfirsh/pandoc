@@ -2101,10 +2101,14 @@ splitWordTok = do
          setInput $ map (Tok spos Symbol . T.singleton) (T.unpack t) ++ rest
        _ -> return ()
 
-parseAligns :: PandocMonad m => LP m [(Alignment, Double, ([Tok], [Tok]))]
+parseAligns :: PandocMonad m => LP m [Alignment]
 parseAligns = try $ do
   let maybeBar = skipMany $
-        sp <|> () <$ symbol '|' <|> () <$ (symbol '@' >> braced)
+        sp
+        <|> () <$ symbol '|'
+        <|> () <$ (symbol '@' >> braced)
+        <|> () <$ (symbol '>' >> braced)
+        <|> () <$ symbol ':'
   let cAlign = AlignCenter <$ symbol 'c'
   let lAlign = AlignLeft <$ symbol 'l'
   let rAlign = AlignRight <$ symbol 'r'
@@ -2118,98 +2122,56 @@ parseAligns = try $ do
   let upperRAlign = AlignRight <$ symbol 'R'
   let upperCAlign = AlignCenter <$ symbol 'C'
   let upperJAlign = AlignLeft <$ symbol 'J'
+  let upperParAlign = AlignLeft <$ symbol 'P'
 
   let alignChar = splitWordTok *> (  cAlign <|> lAlign <|> rAlign <|> parAlign
                                  <|> xAlign <|> mAlign <|> bAlign
                                  <|> upperLAlign <|> upperRAlign
-                                 <|> upperCAlign <|> upperJAlign)
-  let alignPrefix = symbol '>' >> braced
-  let alignSuffix = symbol '<' >> braced
-  let colWidth = try $ do
-        symbol '{'
-        ds <- trim . toksToString <$> manyTill anyTok (controlSeq "linewidth")
-        spaces
-        symbol '}'
-        case safeRead ds of
-              Just w  -> return w
-              Nothing -> return 0.0
-  let alignSpec = try $ do
-        spaces
-        pref <- option [] alignPrefix
-        spaces
-        al <- alignChar
-        width <- colWidth <|> option 0.0 (do s <- toksToString <$> braced
-                                             pos <- getPosition
-                                             report $ SkippedContent s pos
-                                             return 0.0)
-        spaces
-        suff <- option [] alignSuffix
-        return (al, width, (pref, suff))
+                                 <|> upperCAlign <|> upperJAlign <|> upperParAlign)
   bgroup
   spaces
   maybeBar
-  aligns' <- many (alignSpec <* maybeBar)
+  alignChars <- many (alignChar <* (optional braced) <* maybeBar)
   spaces
   egroup
   spaces
-  return aligns'
+  return alignChars
 
-parseTableRow :: PandocMonad m
-              => Text   -- ^ table environment name
-              -> [([Tok], [Tok])] -- ^ pref/suffixes
-              -> LP m [Blocks]
-parseTableRow envname prefsufs = do
-  notFollowedBy (spaces *> end_ envname)
-  let cols = length prefsufs
-  -- add prefixes and suffixes in token stream:
-  let celltoks (pref, suff) = do
-        prefpos <- getPosition
-        contents <- many (notFollowedBy
-                         (() <$ amp <|> () <$ lbreak <|> end_ envname)
-                         >> anyTok)
-        suffpos <- getPosition
-        option [] (count 1 amp)
-        return $ map (setpos (sourceLine prefpos, sourceColumn prefpos)) pref
-                 ++ contents ++
-                 map (setpos (sourceLine suffpos, sourceColumn suffpos)) suff
-  rawcells <- sequence (map celltoks prefsufs)
-  oldInput <- getInput
-  cells <- sequence $ map (\ts -> setInput ts >> parseTableCell) rawcells
-  setInput oldInput
-  spaces
-  let numcells = length cells
-  guard $ numcells <= cols && numcells >= 1
-  guard $ cells /= [mempty]
-  -- note:  a & b in a three-column table leaves an empty 3rd cell:
-  return $ cells ++ replicate (cols - numcells) mempty
+tableRowCells :: PandocMonad m => Text -> LP m [Blocks]
+tableRowCells envname = sepEndBy (tableCellBlock envname) amp
 
-parseTableCell :: PandocMonad m => LP m Blocks
-parseTableCell = do
-  let plainify bs = case toList bs of
-                         [Para ils] -> plain (fromList ils)
-                         _          -> bs
-  updateState $ \st -> st{ sInTableCell = True }
-  cells <- plainify <$> blocks
-  updateState $ \st -> st{ sInTableCell = False }
-  return cells
+tableCellBlock :: PandocMonad m => Text -> LP m Blocks
+tableCellBlock envname = mconcat <$> many cellBlocks
+  where cellBlocks = environment
+           <|> blockCommand
+           <|> tableCellParagraph envname
+           <|> grouped (tableCellBlock envname)
+
+tableCellParagraph :: PandocMonad m => Text -> LP m Blocks
+tableCellParagraph envname = plain <$> mconcat <$> many1 tableCellInline
+  where tableCellInline = notFollowedBy tableCellSeparator >> inlineTok
+        tableCellSeparator = () <$ amp <|> () <$ lbreak <|> (end_ envname)
+        inlineTok = inline <|> (str "\n" <$ many1 newlineTok)
+
+loudTrace :: Show a => a -> a
+loudTrace s = trace ("########### " ++ (show s)) s
 
 simpTable :: PandocMonad m => Text -> Bool -> LP m Blocks
 simpTable envname hasWidthParameter = try $ do
   when hasWidthParameter $ () <$ (spaces >> tok)
   skipopts
-  colspecs <- parseAligns
-  let (aligns, widths, prefsufs) = unzip3 colspecs
-  let cols = length colspecs
+  aligns <- parseAligns
+  let cols = length aligns
+  let widths = replicate cols 0.0
   optional $ controlSeq "caption" *> skipopts *> setCaption
   optional lbreak
   spaces
   skipMany hline
   spaces
-  header' <- option [] $ try (parseTableRow envname prefsufs <*
+  header' <- option [] $ try (tableRowCells envname <*
                                    lbreak <* many1 hline)
   spaces
-  rows <- sepEndBy (parseTableRow envname prefsufs)
-                    (lbreak <* optional (skipMany hline))
+  rows <- sepEndBy (tableRowCells envname) (lbreak <* optional (skipMany hline))
   spaces
   optional $ controlSeq "caption" *> skipopts *> setCaption
   optional lbreak
