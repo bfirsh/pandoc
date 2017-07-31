@@ -2162,6 +2162,13 @@ parseAligns = try $ do
   spaces
   return alignChars
 
+tableHeader :: PandocMonad m => Text -> LP m [Blocks]
+tableHeader envname = option [] $ try (tableRowCells envname <*
+                                   lbreak <* many1 hline)
+
+tableRows :: PandocMonad m => Text -> LP m [[Blocks]]
+tableRows envname = sepEndBy (tableRowCells envname) (lbreak <* optional (skipMany hline))
+
 tableRowCells :: PandocMonad m => Text -> LP m [Blocks]
 tableRowCells envname = sepEndBy (tableCellBlock envname) amp
 
@@ -2193,10 +2200,9 @@ simpTable envname hasWidthParameter = try $ do
   spaces
   skipMany hline
   spaces
-  header' <- option [] $ try (tableRowCells envname <*
-                                   lbreak <* many1 hline)
+  header' <- tableHeader envname
   spaces
-  rows <- sepEndBy (tableRowCells envname) (lbreak <* optional (skipMany hline))
+  rows <- tableRows envname
   spaces
   optional $ controlSeq "caption" *> skipopts *> setCaption
   optional lbreak
