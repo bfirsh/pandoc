@@ -1562,7 +1562,9 @@ authors = try $ do
   bgroup
   let oneAuthor = mconcat <$>
        many1 (notFollowedBy' (controlSeq "and") >>
-               (inline <|> mempty <$ blockCommand))
+               (inline
+                <|> mempty <$ blockCommand
+                <|> (str "\n" <$ many1 newlineTok)))
                -- skip e.g. \vspace{10pt}
   auths <- sepBy oneAuthor (controlSeq "and")
   egroup
