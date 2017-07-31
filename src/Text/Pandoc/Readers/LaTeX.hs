@@ -1347,6 +1347,8 @@ inlineCommands = M.fromList $
   , ("And", lit "and")
   , ("AND", lit "and")
   , ("tt", ttfamily)
+  , ("multirow", tok >> tok >>
+       ((spanWith ("",["multirow-cell"],[])) <$>  inline))
   ]
 
 ifstrequal :: PandocMonad m => LP m Inlines
@@ -1764,7 +1766,6 @@ blockCommands = M.fromList $
    , ("colorbox", coloredBlock "background-color")
    , ("scalebox", braced >> blocks)
    , ("color", braced >> blocks)
-   , ("multirow", braced >> braced >> blocks)
    , ("def", ignoreDef)
    ]
 
