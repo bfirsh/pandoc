@@ -1793,7 +1793,7 @@ blockCommands = M.fromList $
    , ("textcolor", coloredBlock "color")
    , ("colorbox", coloredBlock "background-color")
    , ("scalebox", braced >> blocks)
-   , ("color", braced >> blocks)
+   , ("color", coloredBlock "color")
    , ("def", ignoreDef)
    , ("emph", (divWith ("", ["emph"], []) <$> blocks))  -- TODO: in html!!!
    , ("textbf", (divWith ("", ["textbf"], []) <$> blocks))  -- TODO: in html!!!
