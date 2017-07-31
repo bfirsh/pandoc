@@ -73,7 +73,7 @@ import Text.Pandoc.Error (PandocError(PandocParsecError, PandocMacroLoop))
 -- for debugging:
 -- import Text.Pandoc.Extensions (getDefaultExtensions)
 -- import Text.Pandoc.Class (runIOorExplode, PandocIO)
--- import Debug.Trace (traceShowId)
+import Debug.Trace (traceShowId, trace)
 
 -- | Parse LaTeX from string and return 'Pandoc' document.
 readLaTeX :: PandocMonad m
