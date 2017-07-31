@@ -1769,6 +1769,7 @@ blockCommands = M.fromList $
    , ("def", ignoreDef)
    , ("emph", (divWith ("", ["emph"], []) <$> blocks))  -- TODO: in html!!!
    , ("textbf", (divWith ("", ["textbf"], []) <$> blocks))  -- TODO: in html!!!
+   , ("texttt", (divWith ("", ["texttt"], []) <$> blocks))  -- TODO: in html!!!
    , ("multirow", braced >> braced >>
        ((divWith ("",["multirow-cell"],[])) <$> blocks))  -- TODO: parses but doesn't actually work!!!
    ]
