@@ -2172,7 +2172,7 @@ tableCellParagraph :: PandocMonad m => Text -> LP m Blocks
 tableCellParagraph envname = plain <$> mconcat <$> many1 tableCellInline
   where tableCellInline = notFollowedBy tableCellSeparator >> inlineTok
         tableCellSeparator = () <$ amp <|> () <$ lbreak <|> (end_ envname)
-        inlineTok = inline <|> (str "\n" <$ many1 newlineTok)
+        inlineTok = inline <|> (str "\n" <$ many1 newlineTok) <|> (str " " <$ spaces1)
 
 loudTrace :: Show a => a -> a
 loudTrace s = trace ("########### " ++ (show s)) s
