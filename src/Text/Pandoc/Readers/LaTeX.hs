@@ -1823,6 +1823,7 @@ environments = M.fromList
    , ("tabularx", env "tabularx" $ simpTable "tabularx" True)
    , ("tabular", env "tabular"  $ simpTable "tabular" False)
    , ("tabulary", env "tabulary"  $ simpTable "tabulary" True)
+   , ("adjustbox", env "adjustbox"  adjustbox)
    , ("quote", blockQuote <$> env "quote" blocks)
    , ("quotation", blockQuote <$> env "quotation" blocks)
    , ("verse", blockQuote <$> env "verse" blocks)
@@ -2107,6 +2108,27 @@ orderedList' = try $ do
   bs <- listenv "enumerate" (many item)
   return $ orderedListWith (start, style, delim) bs
 
+adjustbox :: PandocMonad m => LP m Blocks
+adjustbox = do
+  bgroup
+  kvs <- many1 keyval
+  egroup
+  case (lookup "tabular" kvs) of
+    Just alignStr -> adjustboxTable alignStr
+    Nothing -> blocks
+
+adjustboxTable :: PandocMonad m => String -> LP m Blocks
+adjustboxTable alignStr = do
+  inp <- getInput
+  let alignTokens = tokenize $ T.pack $ "{" ++ alignStr ++ "}"
+  setInput $ alignTokens ++ inp
+  aligns <- parseAligns
+  let cols = length aligns
+  let widths = replicate cols 0.0
+  (header', rows) <- tableContents cols "adjustbox"
+  lookAhead $ controlSeq "end" -- make sure we're at end
+  return $ table mempty (zip aligns widths) header' rows
+
 -- tables
 
 hline :: PandocMonad m => LP m ()
@@ -2236,6 +2258,12 @@ simpTable envname hasWidthParameter = try $ do
   aligns <- parseAligns
   let cols = length aligns
   let widths = replicate cols 0.0
+  (header', rows) <- tableContents cols envname
+  lookAhead $ controlSeq "end" -- make sure we're at end
+  return $ table mempty (zip aligns widths) header' rows
+
+tableContents :: PandocMonad m => Int -> Text -> LP m ([Blocks], [[Blocks]])
+tableContents cols envname = do
   optional $ controlSeq "caption" *> skipopts *> setCaption
   optional lbreak
   spaces
@@ -2251,8 +2279,7 @@ simpTable envname hasWidthParameter = try $ do
   let header'' = if null header'
                     then replicate cols mempty
                     else header'
-  lookAhead $ controlSeq "end" -- make sure we're at end
-  return $ table mempty (zip aligns widths) header'' rows
+  return (header'', rows)
 
 addTableCaption :: PandocMonad m => Blocks -> LP m Blocks
 addTableCaption = walkM go
