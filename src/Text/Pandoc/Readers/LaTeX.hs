@@ -1777,7 +1777,6 @@ blockCommands = M.fromList $
    , ("closing", skipopts *> closing)
    --
    , ("hrule", pure horizontalRule)
-   , ("strut", pure mempty)
    , ("rule", skipopts *> tok *> tok *> pure horizontalRule)
    , ("item", looseItem)
    , ("documentclass", skipopts *> braced *> preamble)
