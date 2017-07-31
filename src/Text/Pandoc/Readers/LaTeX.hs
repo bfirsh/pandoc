@@ -1767,6 +1767,7 @@ blockCommands = M.fromList $
    , ("scalebox", braced >> blocks)
    , ("color", braced >> blocks)
    , ("def", ignoreDef)
+   , ("emph", (divWith ("", ["emph"], []) <$> blocks))
    ]
 
 
