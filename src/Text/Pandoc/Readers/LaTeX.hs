@@ -1827,6 +1827,7 @@ environments = M.fromList
    , ("alignat", mathEnvWith para (Just "aligned") "alignat")
    , ("alignat*", mathEnvWith para (Just "aligned") "alignat*")
    , ("empheq", mathEnvWith para (Just "aligned") "empheq")
+   , ("flalign", mathEnvWith para (Just "aligned") "flalign")
    , ("tikzpicture", rawVerbEnv "tikzpicture")
    , ("small", env "small" blocks)
    -- TODO: handle proof caption "\begin{proof}[Proof of Lemma \ref{lem:graph_path}]" (1707.08238v1)
