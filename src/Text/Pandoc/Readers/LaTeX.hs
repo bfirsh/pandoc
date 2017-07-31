@@ -2103,14 +2103,11 @@ splitWordTok = do
          setInput $ map (Tok spos Symbol . T.singleton) (T.unpack t) ++ rest
        _ -> return ()
 
-parseAligns :: PandocMonad m => LP m [Alignment]
-parseAligns = try $ do
-  let maybeBar = skipMany $
-        sp
-        <|> () <$ symbol '|'
-        <|> () <$ (symbol '@' >> braced)
-        <|> () <$ (symbol '>' >> braced)
-        <|> () <$ symbol ':'
+toksToInt :: [Tok] -> Int
+toksToInt x = read (toksToString x) :: Int
+
+alignDef :: PandocMonad m => LP m Alignment
+alignDef = do
   let cAlign = AlignCenter <$ symbol 'c'
   let lAlign = AlignLeft <$ symbol 'l'
   let rAlign = AlignRight <$ symbol 'r'
@@ -2126,14 +2123,36 @@ parseAligns = try $ do
   let upperJAlign = AlignLeft <$ symbol 'J'
   let upperParAlign = AlignLeft <$ symbol 'P'
 
-  let alignChar = splitWordTok *> (  cAlign <|> lAlign <|> rAlign <|> parAlign
-                                 <|> xAlign <|> mAlign <|> bAlign
-                                 <|> upperLAlign <|> upperRAlign
-                                 <|> upperCAlign <|> upperJAlign <|> upperParAlign)
+  cAlign <|> lAlign <|> rAlign <|> parAlign
+    <|> xAlign <|> mAlign <|> bAlign
+    <|> upperLAlign <|> upperRAlign <|> upperCAlign
+    <|> upperJAlign <|> upperParAlign
+
+multipleAlign :: PandocMonad m => LP m [Alignment]
+multipleAlign = do
+  symbol '*'
+  times <- toksToInt <$> braced
+  bgroup
+  align <- splitWordTok *> alignDef
+  egroup
+  return $ replicate times align
+
+parseAligns :: PandocMonad m => LP m [Alignment]
+parseAligns = try $ do
+  let maybeBar = skipMany $
+        sp
+        <|> () <$ symbol '|'
+        <|> () <$ (symbol '@' >> braced)
+        <|> () <$ (symbol '>' >> braced)
+        <|> () <$ symbol ':'
+
+  let singleAlign = (toList <$> singleton <$> (splitWordTok *> alignDef))
+                      <* (optional braced) <* maybeBar
+
   bgroup
   spaces
   maybeBar
-  alignChars <- many (alignChar <* (optional braced) <* maybeBar)
+  alignChars <- mconcat <$> many (multipleAlign <|> singleAlign)
   spaces
   egroup
   spaces
