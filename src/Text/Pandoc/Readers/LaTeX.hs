@@ -1349,6 +1349,8 @@ inlineCommands = M.fromList $
   , ("tt", ttfamily)
   , ("multirow", tok >> tok >>
        ((spanWith ("",["multirow-cell"],[])) <$>  inline))
+  , ("thanks", extractSpaces (spanWith ("",["thanks"],[])) <$> tok)
+  , ("color", coloredInline "color")
   ]
 
 ifstrequal :: PandocMonad m => LP m Inlines
