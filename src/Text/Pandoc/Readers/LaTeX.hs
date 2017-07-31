@@ -1097,6 +1097,7 @@ rawopt :: PandocMonad m => LP m Text
 rawopt = do
   symbol '['
   inner <- untokenize <$> manyTill anyTok (symbol ']')
+  optional comment
   optional sp
   return $ "[" <> inner <> "]"
 
