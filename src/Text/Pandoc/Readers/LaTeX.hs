@@ -1831,6 +1831,7 @@ environments = M.fromList
    , ("small", env "small" blocks)
    -- TODO: handle proof caption "\begin{proof}[Proof of Lemma \ref{lem:graph_path}]" (1707.08238v1)
    , ("proof", env "proof" $ skipopts *> blocks)
+   , ("IEEEbiography", env "IEEEbiography" ieeeBiography)
    ]
 
 environment :: PandocMonad m => LP m Blocks
@@ -1902,6 +1903,16 @@ obeylines = do
                                       reverse . dropWhile isLineBreak
         isLineBreak LineBreak     = True
         isLineBreak _             = False
+
+ieeeBiography :: PandocMonad m => LP m Blocks
+ieeeBiography = do
+  options <- option [] $ toList <$> bracketed inline
+  name <- toList <$> str <$> toksToString <$> braced
+  let ils = fromList (options ++ name)
+  let p = para ils
+  bs <- blocks
+  return $ divWith ("", ["ieeeBiography"], []) $ (p <> bs)
+
 
 minted :: PandocMonad m => LP m Blocks
 minted = do
