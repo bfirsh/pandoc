@@ -1059,6 +1059,23 @@ inlineCommand' = try $ do
          <|> ignore rawcommand
   lookupListDefault raw names inlineCommands
 
+inlineCommandOuterBraced :: PandocMonad m => LP m Inlines
+inlineCommandOuterBraced = try $ do
+  bgroup
+  c <- command
+  egroup
+  return c
+  where command = cmd "em" emph
+                  <|> cmd "it" emph
+                  <|> cmd "sl" emph
+                  <|> cmd "bf" strong
+                  <|> cmd "boldmath" strong
+                  <|> cmd "rm" id
+                  <|> cmd "sc" smallcaps
+                  <|> cmd "tt" typewriter
+                  <|> (controlSeq "color" >> coloredFrom inlines "color")
+        cmd = (\s -> \f -> controlSeq s >> extractSpaces f <$> inlines)
+
 tok :: PandocMonad m => LP m Inlines
 tok = grouped inline <|> inlineCommand' <|> singleChar
   where singleChar = try $ do
@@ -1365,13 +1382,19 @@ ifstrequal = do
   return mempty
 
 coloredInline :: PandocMonad m => String -> LP m Inlines
-coloredInline stylename = do
+coloredInline = coloredFrom tok
+
+coloredFrom :: PandocMonad m => LP m Inlines -> String -> LP m Inlines
+coloredFrom parser stylename = do
   skipopts
   color <- braced
-  spanWith ("",[],[("style",stylename ++ ": " ++ toksToString color)]) <$> tok
+  spanWith ("",[],[("style",stylename ++ ": " ++ toksToString color)]) <$> parser
 
 ttfamily :: PandocMonad m => LP m Inlines
-ttfamily = (code . stringify . toList) <$> tok
+ttfamily = typewriter <$> tok
+
+typewriter :: Inlines -> Inlines
+typewriter = code . stringify . toList
 
 rawInlineOr :: PandocMonad m => Text -> LP m Inlines -> LP m Inlines
 rawInlineOr name' fallback = do
@@ -1454,6 +1477,7 @@ inline = (mempty <$ comment)
      <|> word
      <|> inlineCommand'
      <|> inlineEnvironment
+     <|> inlineCommandOuterBraced
      <|> inlineGroup
      <|> (symbol '-' *>
            option (str "-") (symbol '-' *>
