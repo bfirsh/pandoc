@@ -1074,6 +1074,7 @@ inlineCommandOuterBraced = try $ do
                   <|> cmd "rm" id
                   <|> cmd "sc" smallcaps
                   <|> cmd "tt" typewriter
+                  <|> cmd "small" id
                   <|> (controlSeq "color" >> coloredInline "color")
         cmd = (\s -> \f -> controlSeq s >> extractSpaces f <$> inlines)
 
