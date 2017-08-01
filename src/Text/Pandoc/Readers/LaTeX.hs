@@ -1833,6 +1833,7 @@ environments = M.fromList
    , ("tabular*", env "tabular*" $ simpTable "tabular*" True)
    , ("tabularx", env "tabularx" $ simpTable "tabularx" True)
    , ("tabular", env "tabular"  $ simpTable "tabular" False)
+   , ("tabu", env "tabu"  $ simpTable "tabu" False)
    , ("tabulary", env "tabulary"  $ simpTable "tabulary" True)
    , ("adjustbox", env "adjustbox" adjustbox)
    , ("quote", blockQuote <$> env "quote" blocks)
