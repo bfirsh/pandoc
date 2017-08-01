@@ -1275,7 +1275,7 @@ inlineCommands = M.fromList $
   , ("textless", lit "<")
   , ("textgreater", lit ">")
   , ("thanks", note <$> grouped block)
-  , ("footnote", note <$> grouped block)
+  , ("footnote", skipopts >> note <$> grouped block)
   , ("verb", doverb)
   , ("lstinline", dolstinline)
   , ("Verb", doverb)
