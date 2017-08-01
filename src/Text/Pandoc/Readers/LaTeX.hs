@@ -387,7 +387,7 @@ doMacros n = do
                      Nothing -> return ()
                      Just (Macro numargs optarg newtoks) -> do
                        setInput ts
-                       let getarg = spaces >> braced
+                       let getarg = spaces >> bracedOrSingleTok
                        args <- case optarg of
                                     Nothing -> count numargs getarg
                                     Just o  ->
@@ -1593,32 +1593,36 @@ macroDef = do
         -- @\newcommand{\envname}[n-args][default]{begin}@
         -- @\newcommand{\endenvname}@
 
+maybeBraced :: PandocMonad m => LP m a -> LP m a
+maybeBraced p = (bgroup *> p <* egroup) <|> p
+
+bracedOrSingleTok :: PandocMonad m => LP m [Tok]
+bracedOrSingleTok = braced <|> (toList <$> singleton <$> anyTok)
+
 newcommand :: PandocMonad m => LP m (Text, Macro)
-newcommand = do
+newcommand = withVerbatimMode $ do
   pos <- getPosition
   Tok _ (CtrlSeq mtype) _ <- controlSeq "newcommand" <|>
                              controlSeq "renewcommand" <|>
                              controlSeq "providecommand"
   optional $ symbol '*'
-
-  -- TODO: ugly
-  name <- untokenize <$> (braced <|> many (withVerbatimMode $ anyControlSeq))
-
+  Tok _ (CtrlSeq name) txt <- anyControlSeq <|>
+    (symbol '{' *> spaces *> anyControlSeq <* spaces <* symbol '}')
   spaces
   numargs <- option 0 $ try bracketedNum
   spaces
   optarg <- option Nothing $ Just <$> try bracketedToks
   spaces
-  contents <- braced
+  contents <- bracedOrSingleTok
   when (mtype == "newcommand") $ do
     macros <- sMacros <$> getState
     case M.lookup name macros of
-         Just _ -> report $ MacroAlreadyDefined (T.unpack name) pos
+         Just _ -> report $ MacroAlreadyDefined (T.unpack txt) pos
          Nothing -> return ()
   return (name, Macro numargs optarg contents)
 
 newenvironment :: PandocMonad m => LP m (Text, Macro, Macro)
-newenvironment = do
+newenvironment = withVerbatimMode $ do
   pos <- getPosition
   Tok _ (CtrlSeq mtype) _ <- controlSeq "newenvironment" <|>
                              controlSeq "renewenvironment" <|>
@@ -1642,18 +1646,14 @@ newenvironment = do
   return (name, Macro numargs optarg startcontents,
              Macro 0 Nothing endcontents)
 
--- TODO: don't ignore
+-- TODO: don't ignore (it's hard....)
 ignoreDef :: PandocMonad m => LP m Blocks
 ignoreDef = do
   spaces
-  command <- tokString <$> (withVerbatimMode $ anyControlSeq)
-  parameters <- toksString <$> many (spaces >> anyArg)
+  maybeBraced $ many (anyControlSeq <|> anyArg)
   spaces
-  definition <- toksString <$> braced
-  -- TODO: ugly
-  return $ rawBlock "latex" ("\\def{" ++ command ++ parameters ++ "}{" ++ definition ++ "}")
-  where tokString = T.unpack . untoken
-        toksString = T.unpack . untokenize
+  (() <$ braced) <|> (() <$ tok)
+  return mempty
 
 bracketedToks :: PandocMonad m => LP m [Tok]
 bracketedToks = do
@@ -2158,9 +2158,12 @@ amp :: PandocMonad m => LP m Tok
 amp = symbol '&'
 
 endOrEndOfDocument :: PandocMonad m => Text -> LP m ()
-endOrEndOfDocument name =
-  -- TODO: ugly
-  end_ name <|> unexpectedEndOfDocument name <?> "\\end{" ++ (T.unpack name) ++ "}"
+endOrEndOfDocument name = do
+  let envEnd = end_ name
+  let badDocEnd = unexpectedEndOfDocument name
+  if name == "document"
+      then envEnd <* many anyTok
+      else envEnd <|> badDocEnd <?> "\\end{" ++ (T.unpack name) ++ "}"
 
 unexpectedEndOfDocument :: PandocMonad m => Text -> LP m ()
 unexpectedEndOfDocument name =
@@ -2301,7 +2304,7 @@ block :: PandocMonad m => LP m Blocks
 block = (mempty <$ spaces1)
     <|> environment
     <|> include
---    <|> macroDef
+    <|> macroDef
     <|> blockCommand
     <|> paragraph
     <|> grouped block
