@@ -1642,6 +1642,7 @@ newenvironment = do
   return (name, Macro numargs optarg startcontents,
              Macro 0 Nothing endcontents)
 
+-- TODO: don't ignore
 ignoreDef :: PandocMonad m => LP m Blocks
 ignoreDef = do
   spaces
@@ -1826,7 +1827,7 @@ environments = M.fromList
    , ("tabularx", env "tabularx" $ simpTable "tabularx" True)
    , ("tabular", env "tabular"  $ simpTable "tabular" False)
    , ("tabulary", env "tabulary"  $ simpTable "tabulary" True)
-   , ("adjustbox", env "adjustbox"  adjustbox)
+   , ("adjustbox", env "adjustbox" adjustbox)
    , ("quote", blockQuote <$> env "quote" blocks)
    , ("quotation", blockQuote <$> env "quotation" blocks)
    , ("verse", blockQuote <$> env "verse" blocks)
@@ -1861,6 +1862,7 @@ environments = M.fromList
    , ("empheq", mathEnvWith para (Just "aligned") "empheq")
    , ("flalign", mathEnvWith para (Just "aligned") "flalign")
    , ("tikzpicture", rawVerbEnv "tikzpicture")
+   , ("algorithm", rawVerbEnv "algorithm")
    , ("small", env "small" blocks)
    -- TODO: handle proof caption "\begin{proof}[Proof of Lemma \ref{lem:graph_path}]" (1707.08238v1)
    , ("proof", env "proof" $ skipopts *> blocks)
