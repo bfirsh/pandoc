@@ -1805,6 +1805,8 @@ blockCommands = M.fromList $
    , ("multirow", braced >> braced >>
        ((divWith ("",["multirow-cell"],[])) <$> blocks))  -- TODO: parses but doesn't actually work!!!
    , ("thanks", (divWith ("",["thanks"],[]) <$> blocks)) -- TOOD: in html!!!
+   , ("else", mempty <$ (manyTill anyTok $ controlSeq "fi"))
+   , ("text", blocks)
    ]
 
 
