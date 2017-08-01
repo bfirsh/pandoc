@@ -1862,6 +1862,7 @@ environments = M.fromList
    , ("multline", mathEnvWith para (Just "gathered") "multline")
    , ("multline*", mathEnvWith para (Just "gathered") "multline*")
    , ("eqnarray", mathEnvWith para (Just "aligned") "eqnarray")
+   , ("IEEEeqnarray", mathEnvWith para (Just "aligned") "IEEEeqnarray")
    , ("eqnarray*", mathEnvWith para (Just "aligned") "eqnarray*")
    , ("align", mathEnvWith para (Just "aligned") "align")
    , ("align*", mathEnvWith para (Just "aligned") "align*")
