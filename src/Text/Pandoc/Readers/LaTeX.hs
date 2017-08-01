@@ -1371,6 +1371,8 @@ inlineCommands = M.fromList $
        ((spanWith ("",["multirow-cell"],[])) <$>  inline))
   , ("thanks", extractSpaces (spanWith ("",["thanks"],[])) <$> inline)
   , ("color", coloredInline "color")
+   -- if there is an else block, it's possible it will break environment
+   -- balancing. always assume whatever if condition holds.
   , ("else", mempty <$ (manyTill anyTok $ controlSeq "fi"))
   ]
 
