@@ -2228,6 +2228,7 @@ parseAligns = try $ do
         <|> () <$ symbol '|'
         <|> () <$ (symbol '@' >> braced)
         <|> () <$ (symbol '>' >> braced)
+        <|> () <$ (symbol '<' >> braced)
         <|> () <$ symbol ':'
 
   let singleAlign = (toList <$> singleton <$> (splitWordTok *> alignDef))
