@@ -622,7 +622,7 @@ dosiunitx = do
   valueprefix <- option "" $ bracketed tok
   unit <- option "" $ bracedDumb tok
   let emptyOr160 "" = ""
-      emptyOr160 _  = "\160"
+      emptyOr160 _  = " "
   return . mconcat $ [valueprefix,
                       emptyOr160 valueprefix,
                       value,
@@ -1266,7 +1266,7 @@ inlineCommands = M.fromList $
                             spaces))
   , (",", lit "\8198")
   , ("@", pure mempty)
-  , (" ", lit "\160")
+  , (" ", lit " ")
   , ("ps", pure $ str "PS." <> space)
   , ("TeX", lit "TeX")
   , ("LaTeX", lit "LaTeX")
@@ -1492,7 +1492,7 @@ inline = (mempty <$ comment)
      <|> (str "”" <$ symbol '”')
      <|> (str "’" <$ symbol '\'')
      <|> (str "’" <$ symbol '’')
-     <|> (str "\160" <$ symbol '~')
+     <|> (str " " <$ symbol '~')
      <|> dollarsMath
      <|> (guardEnabled Ext_literate_haskell *> symbol '|' *> doLHSverb)
      <|> (str . (:[]) <$> primEscape)
