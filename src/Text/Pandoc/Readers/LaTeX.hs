@@ -1371,6 +1371,7 @@ inlineCommands = M.fromList $
        ((spanWith ("",["multirow-cell"],[])) <$>  inline))
   , ("thanks", extractSpaces (spanWith ("",["thanks"],[])) <$> inline)
   , ("color", coloredInline "color")
+  , ("else", mempty <$ (manyTill anyTok $ controlSeq "fi"))
   ]
 
 ifstrequal :: PandocMonad m => LP m Inlines
