@@ -1641,7 +1641,7 @@ newenvironment = withVerbatimMode $ do
   spaces
   startcontents <- braced
   spaces
-  endcontents <- braced
+  endcontents <- (braced <|> pure [])
   when (mtype == "newenvironment") $ do
     macros <- sMacros <$> getState
     case M.lookup name macros of
