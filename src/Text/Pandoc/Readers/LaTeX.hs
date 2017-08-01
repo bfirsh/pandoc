@@ -1073,7 +1073,7 @@ inlineCommandOuterBraced = try $ do
                   <|> cmd "rm" id
                   <|> cmd "sc" smallcaps
                   <|> cmd "tt" typewriter
-                  <|> (controlSeq "color" >> coloredFrom inlines "color")
+                  <|> (controlSeq "color" >> coloredInline "color")
         cmd = (\s -> \f -> controlSeq s >> extractSpaces f <$> inlines)
 
 tok :: PandocMonad m => LP m Inlines
@@ -1388,13 +1388,10 @@ ifstrequal = do
   return mempty
 
 coloredInline :: PandocMonad m => String -> LP m Inlines
-coloredInline = coloredFrom tok
-
-coloredFrom :: PandocMonad m => LP m Inlines -> String -> LP m Inlines
-coloredFrom parser stylename = do
+coloredInline stylename =  do
   skipopts
   color <- braced
-  spanWith ("",[],[("style",stylename ++ ": " ++ toksToString color)]) <$> parser
+  spanWith ("",[],[("style",stylename ++ ": " ++ toksToString color)]) <$> inlines
 
 ttfamily :: PandocMonad m => LP m Inlines
 ttfamily = typewriter <$> tok
