@@ -1369,7 +1369,7 @@ inlineCommands = M.fromList $
   , ("tt", ttfamily)
   , ("multirow", tok >> tok >>
        ((spanWith ("",["multirow-cell"],[])) <$>  inline))
-  , ("thanks", extractSpaces (spanWith ("",["thanks"],[])) <$> tok)
+  , ("thanks", extractSpaces (spanWith ("",["thanks"],[])) <$> inline)
   , ("color", coloredInline "color")
   ]
 
