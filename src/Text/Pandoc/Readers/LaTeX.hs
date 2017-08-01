@@ -283,11 +283,12 @@ totoks (lin,col) t =
            in  Tok (lin, col) Comment ("%" <> cs)
                : totoks (lin, col + 1 + T.length cs) rest'
          | c == '\\' ->
-           case T.uncons rest of
+           let isLetterOrAt = (\c' -> isLetter c' || c' == '@')
+           in  case T.uncons rest of
                 Nothing -> [Tok (lin, col) Symbol (T.singleton c)]
                 Just (d, rest')
-                  | isLetter d ->
-                      let (ws, rest'') = T.span isLetter rest
+                  | isLetterOrAt d ->
+                      let (ws, rest'') = T.span isLetterOrAt rest
                           (ss, rest''') = T.span isSpaceOrTab rest''
                       in  Tok (lin, col) (CtrlSeq ws) ("\\" <> ws <> ss)
                           : totoks (lin,
