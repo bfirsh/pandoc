@@ -1437,6 +1437,7 @@ treatAsBlock = Set.fromList
    [ "newcommand", "renewcommand"
    , "newenvironment", "renewenvironment"
    , "providecommand", "provideenvironment"
+   , "newcolumntype"
      -- newcommand, etc. should be parsed by macroDef, but we need this
      -- here so these aren't parsed as inline commands to ignore
    , "special", "pdfannot", "pdfstringdef"
@@ -1606,7 +1607,8 @@ newcommand = withVerbatimMode $ do
   pos <- getPosition
   Tok _ (CtrlSeq mtype) _ <- controlSeq "newcommand" <|>
                              controlSeq "renewcommand" <|>
-                             controlSeq "providecommand"
+                             controlSeq "providecommand" <|>
+                             controlSeq "newcolumntype"
   optional $ symbol '*'
   let ctrlSeqName = try $ do
         Tok _ (CtrlSeq name) _ <- anyControlSeq <|>
