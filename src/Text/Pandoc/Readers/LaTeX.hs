@@ -1376,6 +1376,7 @@ inlineCommands = M.fromList $
    -- if there is an else block, it's possible it will break environment
    -- balancing. always assume whatever if condition holds.
   , ("else", mempty <$ (manyTill anyTok $ controlSeq "fi"))
+  , ("parbox", skipopts >> braced >> tok)
   ]
 
 ifstrequal :: PandocMonad m => LP m Inlines
