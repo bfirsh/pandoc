@@ -2199,6 +2199,7 @@ alignDef = do
   let parAlign = AlignLeft <$ symbol 'p'
   -- aligns from tabularx
   let xAlign = AlignLeft <$ symbol 'X'
+  let upperXAlign = AlignLeft <$ symbol 'X'
   let mAlign = AlignLeft <$ symbol 'm'
   let bAlign = AlignLeft <$ symbol 'b'
   -- aligns from tabulary
@@ -2207,11 +2208,13 @@ alignDef = do
   let upperCAlign = AlignCenter <$ symbol 'C'
   let upperJAlign = AlignLeft <$ symbol 'J'
   let upperParAlign = AlignLeft <$ symbol 'P'
+  -- let fallbackAlign = AlignLeft <$ isLetter anySymbol
 
   cAlign <|> lAlign <|> rAlign <|> parAlign
-    <|> xAlign <|> mAlign <|> bAlign
+    <|> xAlign <|> upperXAlign <|> mAlign <|> bAlign
     <|> upperLAlign <|> upperRAlign <|> upperCAlign
     <|> upperJAlign <|> upperParAlign
+    -- <|> fallbackAlign
 
 multipleAlign :: PandocMonad m => LP m [Alignment]
 multipleAlign = do
