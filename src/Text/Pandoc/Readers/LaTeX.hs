@@ -1188,6 +1188,7 @@ inlineCommands = M.fromList $
   , ("textsf", extractSpaces (spanWith ("",["sans-serif"],[])) <$> tok)
   , ("textmd", extractSpaces (spanWith ("",["medium"],[])) <$> tok)
   , ("textrm", extractSpaces (spanWith ("",["roman"],[])) <$> tok)
+  , ("small", extractSpaces (spanWith ("",["small"],[])) <$> tok)
   , ("text", tok)
   , ("textup", extractSpaces (spanWith ("",["upright"],[])) <$> tok)
   , ("texttt", ttfamily)
@@ -1809,6 +1810,7 @@ blockCommands = M.fromList $
    , ("emph", (divWith ("", ["emph"], []) <$> blocks))  -- TODO: in html!!!
    , ("textbf", (divWith ("", ["textbf"], []) <$> blocks))  -- TODO: in html!!!
    , ("texttt", (divWith ("", ["texttt"], []) <$> blocks))  -- TODO: in html!!!
+   , ("small", (divWith ("", ["small"], []) <$> blocks))  -- TODO: in html!!!
    , ("multirow", braced >> braced >>
        ((divWith ("",["multirow-cell"],[])) <$> blocks))  -- TODO: parses but doesn't actually work!!!
    , ("thanks", (divWith ("",["thanks"],[]) <$> blocks)) -- TOOD: in html!!!
