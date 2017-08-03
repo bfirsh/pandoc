@@ -41,7 +41,7 @@ Emacs has [Intero](https://commercialhaskell.github.io/intero/)
 ([here](https://stackoverflow.com/questions/26603649/haskell-repl-in-emacs) is
 a quick intro). `C-l` to send buffer to the GHCi REPL.
 
-Without Emacs, you can still have a decent environment. Start stack with
+Without Emacs, you can still have a decent environment. Start GHCi with
 
 ```
 $ stack ghci "--docker-run-args=--interactive=true --tty=false" --no-build --no-load pandoc
