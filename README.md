@@ -62,14 +62,14 @@ When you've loaded in `src/Text/Pandoc/Readers/LaTeX.hs`, you can run the parser
 
 λ let options = def{ readerExtensions = extensionsFromList [Ext_raw_tex, Ext_latex_macros], readerInputSources = ["foo.tex"] }
 
-λ runPure $ runParserT parseLaTeX def{ sOptions = options } "source" (tokenize $ T.pack "hello \\emph{world}")
+λ runIO $ runParserT parseLaTeX def{ sOptions = options } "source" (tokenize $ T.pack "hello \\emph{world}")
 Right (Right (Pandoc (Meta {unMeta = fromList []}) [Para [Str "hello",Space,Emph [Str "world"]]]))
 ```
 
 You can run specific parts of the parser
 
 ```
-λ runPure $ runParserT parseAligns def{ sOptions = options } "source" (tokenize $ T.pack "{llrr}")
+λ runIO $ runParserT parseAligns def{ sOptions = options } "source" (tokenize $ T.pack "{llrr}")
 Right (Right [AlignLeft,AlignLeft,AlignRight,AlignRight])
 ```
 
