@@ -66,6 +66,7 @@ data ReaderOptions = ReaderOptions{
        , readerAbbreviations         :: Set.Set String -- ^ Strings to treat as abbreviations
        , readerDefaultImageExtension :: String -- ^ Default extension for images
        , readerTrackChanges          :: TrackChanges
+       , readerInputSources          :: [String]
 } deriving (Show, Read, Data, Typeable, Generic)
 
 instance Default ReaderOptions
@@ -78,6 +79,7 @@ instance Default ReaderOptions
                , readerAbbreviations         = defaultAbbrevs
                , readerDefaultImageExtension = ""
                , readerTrackChanges          = AcceptChanges
+               , readerInputSources          = []
                }
 
 defaultAbbrevs :: Set.Set String

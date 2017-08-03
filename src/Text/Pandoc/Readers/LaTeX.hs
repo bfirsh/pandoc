@@ -1816,6 +1816,8 @@ blockCommands = M.fromList $
    , ("thanks", (divWith ("",["thanks"],[]) <$> blocks)) -- TOOD: in html!!!
    , ("else", mempty <$ (manyTill anyTok $ controlSeq "fi"))
    , ("text", blocks)
+   , ("bibitem", bibitem)
+   , ("newblock", mempty <$ skipopts)
    ]
 
 
@@ -1881,6 +1883,7 @@ environments = M.fromList
    -- TODO: handle proof caption "\begin{proof}[Proof of Lemma \ref{lem:graph_path}]" (1707.08238v1)
    , ("proof", env "proof" $ skipopts *> blocks)
    , ("IEEEbiography", env "IEEEbiography" ieeeBiography)
+   , ("thebibliography", env "thebibliography" thebibliography)
    ]
 
 environment :: PandocMonad m => LP m Blocks
@@ -1961,7 +1964,6 @@ ieeeBiography = do
   let p = para ils
   bs <- blocks
   return $ divWith ("", ["ieeeBiography"], []) $ (p <> bs)
-
 
 minted :: PandocMonad m => LP m Blocks
 minted = do
@@ -2316,11 +2318,43 @@ addTableCaption = walkM go
                Nothing  -> Table c als ws hs rs
         go x = return x
 
+thebibliography :: PandocMonad m => LP m Blocks
+thebibliography = do
+  braced  -- count
+  spaces
+  divWith ("", ["bibliography"], []) <$> blocks
+
+bibitem :: PandocMonad m => LP m Blocks
+bibitem = do
+  spaces
+  skipopts
+  spaces
+  ref <- toksToString <$> braced
+  let nextItemOrEnd = lookAhead $ controlSeq "bibitem" <|> controlSeq "end"
+  toks <- manyTill anyTok nextItemOrEnd
+  pstate <- getState
+  let constructor = divWith ("", ["bibitem"], [("label", ref)])
+  res <- runParserT blocks pstate "bibitem" toks
+  case res of
+       Right r -> return $ constructor $ r
+       Left e -> fail (show e)
+
+arxivBblBibliography :: PandocMonad m => LP m Blocks
+arxivBblBibliography = try $ do
+  controlSeq "bibliography"
+  spaces
+  braced
+  sources <- getOption readerInputSources
+  let firstSource = head $ sources
+  let bblFilename = replaceExtension firstSource "bbl"
+  insertIncludedFile blocks (tokenize . T.pack) ["."] bblFilename
+
 
 block :: PandocMonad m => LP m Blocks
 block = (mempty <$ spaces1)
     <|> environment
     <|> include
+    <|> arxivBblBibliography
     <|> macroDef
     <|> blockCommand
     <|> paragraph

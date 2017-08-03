@@ -314,6 +314,7 @@ convertWithOpts opts = do
                       , readerTrackChanges = optTrackChanges opts
                       , readerAbbreviations = abbrevs
                       , readerExtensions = readerExts
+                      , readerInputSources = sources
                       }
 
   highlightStyle <- lookupHighlightStyle $ optHighlightStyle opts
@@ -1601,4 +1602,3 @@ splitField s =
   case break (`elem` ":=") s of
        (k,_:v) -> (k,v)
        (k,[])  -> (k,"true")
-
