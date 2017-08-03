@@ -58,18 +58,18 @@ Most of the coding will be done on that particular `src/Text/Pandoc/Readers/LaTe
 When you've loaded in `src/Text/Pandoc/Readers/LaTeX.hs`, you can run the parser from GHCi:
 
 ```
- import Text.Pandoc.Class
+λ import Text.Pandoc.Class
 
- let options = def{ readerExtensions = extensionsFromList [Ext_raw_tex, Ext_latex_macros], readerInputSources = ["foo.tex"] }
+λ let options = def{ readerExtensions = extensionsFromList [Ext_raw_tex, Ext_latex_macros], readerInputSources = ["foo.tex"] }
 
- runPure $ runParserT parseLaTeX def{ sOptions = options } "source" (tokenize $ T.pack "hello \\emph{world}")
+λ runPure $ runParserT parseLaTeX def{ sOptions = options } "source" (tokenize $ T.pack "hello \\emph{world}")
 Right (Right (Pandoc (Meta {unMeta = fromList []}) [Para [Str "hello",Space,Emph [Str "world"]]]))
 ```
 
 You can run specific parts of the parser
 
 ```
- runPure $ runParserT parseAligns def{ sOptions = options } "source" (tokenize $ T.pack "{llrr}")
+λ runPure $ runParserT parseAligns def{ sOptions = options } "source" (tokenize $ T.pack "{llrr}")
 Right (Right [AlignLeft,AlignLeft,AlignRight,AlignRight])
 ```
 
@@ -80,11 +80,11 @@ that's avoided in LaTeX.hs with the `{-# LANGUAGE OverloadedStrings
 On the REPL you can say `:i` to find out the type and source file of a thing (`:t` will give you just the type definition):
 
 ```
- :i keyval
+λ :i keyval
 keyval :: PandocMonad m => LP m (String, String)
     -- Defined at /Users/andreasj/src/pandoc/src/Text/Pandoc/Readers/LaTeX.hs:727:1
 
- :t (*>)
+λ :t (*>)
 (*>) :: Applicative f => f a -> f b -> f b
 ```
 
