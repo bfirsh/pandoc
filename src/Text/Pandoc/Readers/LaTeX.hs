@@ -2241,12 +2241,13 @@ alignDef = do
   let upperJAlign = AlignLeft <$ symbol 'J'
   let upperParAlign = AlignLeft <$ symbol 'P'
   let fallbackAlign = AlignLeft <$ anyLetterSymbol
+  let questionMarkAlign = AlignLeft <$ symbol '?'
 
   cAlign <|> lAlign <|> rAlign <|> parAlign
     <|> xAlign <|> upperXAlign <|> mAlign <|> bAlign
     <|> upperLAlign <|> upperRAlign <|> upperCAlign
     <|> upperJAlign <|> upperParAlign
-    <|> fallbackAlign
+    <|> fallbackAlign <|> questionMarkAlign
 
 singleAlign :: PandocMonad m => LP m Alignment
 singleAlign = do
