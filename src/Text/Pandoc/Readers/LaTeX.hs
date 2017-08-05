@@ -525,32 +525,48 @@ grouped parser = try $ do
   -- {{a,b}} should be parsed the same as {a,b}
   try (grouped parser <* egroup) <|> (mconcat <$> manyTill parser egroup)
 
-braced :: PandocMonad m => LP m [Tok]
-braced = bgroup *> braced' 1
-  where braced' (n :: Int) =
+wrapped :: PandocMonad m => LP m Tok -> LP m Tok -> LP m [Tok]
+wrapped begin end = begin *> wrapped' 1
+  where wrapped' (n :: Int) =
           handleEgroup n <|> handleBgroup n <|> handleOther n
         handleEgroup n = do
-          t <- egroup
+          t <- end
           if n == 1
              then return []
-             else (t:) <$> braced' (n - 1)
+             else (t:) <$> wrapped' (n - 1)
         handleBgroup n = do
-          t <- bgroup
-          (t:) <$> braced' (n + 1)
+          t <- begin
+          (t:) <$> wrapped' (n + 1)
         handleOther n = do
           t <- anyTok
-          (t:) <$> braced' n
+          (t:) <$> wrapped' n
 
-bracketed :: PandocMonad m => Monoid a => LP m a -> LP m a
-bracketed parser = try $ do
-  symbol '['
-  mconcat <$> manyTill parser (symbol ']')
+braced :: PandocMonad m => LP m [Tok]
+braced = wrapped bgroup egroup
 
 -- TODO: ugly
 bracedDumb :: PandocMonad m => Monoid a => LP m a -> LP m a
 bracedDumb parser = try $ do
   symbol '{'
   mconcat <$> manyTill parser (symbol '}')
+
+bracketed :: PandocMonad m => LP m [Tok]
+bracketed = wrapped (symbol '[') (symbol ']')
+
+bracketedDumb :: PandocMonad m => Monoid a => LP m a -> LP m a
+bracketedDumb parser = try $ do
+  symbol '['
+  mconcat <$> manyTill parser (symbol ']')
+
+parseToksToBlocks :: PandocMonad m => LP m [Tok] -> LP m Blocks
+parseToksToBlocks tokenizer = do
+  toks <- tokenizer
+  pstate <- getState
+  res <- runParserT blocks pstate "parser" toks
+  case res of
+       Right r -> return r
+       Left e -> fail (show e)
+
 
 dimenarg :: PandocMonad m => LP m Text
 dimenarg = try $ do
@@ -626,7 +642,7 @@ dosiunitx :: PandocMonad m => LP m Inlines
 dosiunitx = do
   skipopts
   value <- tok
-  valueprefix <- option "" $ bracketed tok
+  valueprefix <- option "" $ bracketedDumb tok
   unit <- option "" $ bracedDumb tok
   let emptyOr160 "" = ""
       emptyOr160 _  = " "
@@ -1100,7 +1116,7 @@ tok = grouped inline <|> inlineCommand' <|> singleChar
              else return $ str (T.unpack t)
 
 opt :: PandocMonad m => LP m Inlines
-opt = bracketed inline
+opt = bracketedDumb inline
 
 rawopt :: PandocMonad m => LP m Text
 rawopt = do
@@ -1271,7 +1287,7 @@ inlineCommands = M.fromList $
   , ("i", lit "i")
   , ("\\", linebreak <$ (do inTableCell <- sInTableCell <$> getState
                             guard $ not inTableCell
-                            optional (bracketed inline)
+                            optional (bracketedDumb inline)
                             spaces))
   , (",", lit "\8198")
   , ("@", pure mempty)
@@ -1292,7 +1308,7 @@ inlineCommands = M.fromList $
   , ("href", (unescapeURL . toksToString <$>
                  braced <* optional sp) >>= \url ->
                    tok >>= \lab -> pure (link url "" lab))
-  , ("includegraphics", do optional $ bracketed inline
+  , ("includegraphics", do optional $ bracketedDumb inline
                            src <- unescapeURL . T.unpack .
                                     removeDoubleQuotes . untokenize <$> braced
                            mkImage [] src)
@@ -1445,7 +1461,6 @@ treatAsBlock = Set.fromList
    [ "newcommand", "renewcommand"
    , "newenvironment", "renewenvironment"
    , "providecommand", "provideenvironment"
-   , "newcolumntype"
      -- newcommand, etc. should be parsed by macroDef, but we need this
      -- here so these aren't parsed as inline commands to ignore
    , "special", "pdfannot", "pdfstringdef"
@@ -1554,7 +1569,7 @@ include = do
   (Tok _ (CtrlSeq name) _) <-
                     controlSeq "include" <|> controlSeq "input" <|>
                     controlSeq "subfile" -- <|> controlSeq "usepackage"
-  skipMany $ bracketed inline -- skip options
+  skipMany $ bracketedDumb inline -- skip options
   fs <- (map trim . splitBy (==',') . T.unpack . untokenize) <$> braced
   let fs' = if name == "usepackage"
                then map (maybeAddExtension ".sty") fs
@@ -1615,8 +1630,7 @@ newcommand = withVerbatimMode $ do
   pos <- getPosition
   Tok _ (CtrlSeq mtype) _ <- controlSeq "newcommand" <|>
                              controlSeq "renewcommand" <|>
-                             controlSeq "providecommand" <|>
-                             controlSeq "newcolumntype"
+                             controlSeq "providecommand"
   optional $ symbol '*'
   let ctrlSeqName = try $ do
         Tok _ (CtrlSeq name) _ <- anyControlSeq <|>
@@ -1666,6 +1680,17 @@ ignoreDef :: PandocMonad m => LP m Blocks
 ignoreDef = do
   spaces
   maybeBraced $ many (anyControlSeq <|> anyArg)
+  spaces
+  (() <$ braced) <|> (() <$ tok)
+  return mempty
+
+-- TODO: don't ignore (it's hard....)
+ignoreNewColumnType :: PandocMonad m => LP m Blocks
+ignoreNewColumnType = do
+  spaces
+  braced
+  spaces
+  skipopts
   spaces
   (() <$ braced) <|> (() <$ tok)
   return mempty
@@ -1814,6 +1839,7 @@ blockCommands = M.fromList $
    , ("scalebox", braced >> blocks)
    , ("color", coloredBlock "color")
    , ("def", ignoreDef)
+   , ("newcolumntype", ignoreNewColumnType)
    , ("emph", (divWith ("", ["emph"], []) <$> blocks))  -- TODO: in html!!!
    , ("textbf", (divWith ("", ["textbf"], []) <$> blocks))  -- TODO: in html!!!
    , ("texttt", (divWith ("", ["texttt"], []) <$> blocks))  -- TODO: in html!!!
@@ -1825,6 +1851,7 @@ blockCommands = M.fromList $
    , ("text", blocks)
    , ("bibitem", bibitem)
    , ("newblock", mempty <$ skipopts)
+   , ("twocolumn", parseToksToBlocks bracketed)
    ]
 
 
@@ -1965,7 +1992,7 @@ obeylines = do
 
 ieeeBiography :: PandocMonad m => LP m Blocks
 ieeeBiography = do
-  options <- option [] $ toList <$> bracketed inline
+  options <- option [] $ toList <$> bracketedDumb inline
   name <- toList <$> str <$> toksToString <$> braced
   let ils = fromList (options ++ name)
   let p = para ils
@@ -2170,7 +2197,7 @@ hline = try $ do
     controlSeq "endhead" <|>
     controlSeq "endfirsthead"
   spaces
-  optional $ bracketed inline
+  optional $ bracketedDumb inline
   return ()
 
 lbreak :: PandocMonad m => LP m Tok
