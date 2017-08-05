@@ -1908,6 +1908,7 @@ environments = M.fromList
    , ("proof", env "proof" $ skipopts *> blocks)
    , ("IEEEbiography", env "IEEEbiography" ieeeBiography)
    , ("thebibliography", env "thebibliography" thebibliography)
+   , ("figwindow", env "figwindow" figwindow)
    ]
 
 environment :: PandocMonad m => LP m Blocks
@@ -2385,6 +2386,12 @@ arxivBblBibliography = try $ do
   let bblFilename = replaceExtension firstSource "bbl"
   insertIncludedFile blocks (tokenize . T.pack) ["."] bblFilename
 
+figwindow :: PandocMonad m => LP m Blocks
+figwindow = try $ do
+  let toks = drop 4 <$> bracketed
+  fig <- parseToksToBlocks toks
+  bs <- blocks
+  return $ fig <> bs
 
 block :: PandocMonad m => LP m Blocks
 block = (mempty <$ spaces1)
