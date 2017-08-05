@@ -1102,18 +1102,7 @@ inlineCommandOuterBraced = try $ do
         cmd = (\s -> \f -> controlSeq s >> extractSpaces f <$> inlines)
 
 tok :: PandocMonad m => LP m Inlines
-tok = grouped inline <|> inlineCommand' <|> singleChar
-  where singleChar = try $ do
-          Tok (lin,col) toktype t <- satisfyTok (tokTypeIn [Word, Symbol])
-          guard $ not $ toktype == Symbol &&
-                        T.any (`Set.member` specialChars) t
-          if T.length t > 1
-             then do
-               let (t1, t2) = (T.take 1 t, T.drop 1 t)
-               inp <- getInput
-               setInput $ (Tok (lin, col + 1) toktype t2) : inp
-               return $ str (T.unpack t1)
-             else return $ str (T.unpack t)
+tok = grouped inline <|> inlineCommand' <|> inline
 
 opt :: PandocMonad m => LP m Inlines
 opt = bracketedDumb inline
