@@ -2265,7 +2265,10 @@ multipleAlign = do
   bgroup
   maybeAlignBar
   align <- singleAlign
+  spaces
   egroup
+  spaces
+  maybeAlignBar
   return $ replicate times align
 
 maybeAlignBar :: PandocMonad m => LP m ()
@@ -2284,8 +2287,6 @@ parseAligns = try $ do
   maybeAlignBar
   let singletonAlign = toList <$> singleton <$> singleAlign
   aligns <- mconcat <$> many (multipleAlign <|> singletonAlign)
-  spaces
-  maybeAlignBar
   spaces
   egroup
   spaces
