@@ -2247,36 +2247,47 @@ alignDef = do
     <|> upperJAlign <|> upperParAlign
     <|> fallbackAlign
 
+singleAlign :: PandocMonad m => LP m Alignment
+singleAlign = do
+  splitWordTok
+  align <- alignDef
+  skipopts
+  optional braced
+  maybeAlignBar
+  return align
+
 multipleAlign :: PandocMonad m => LP m [Alignment]
 multipleAlign = do
   symbol '*'
   times <- toksToInt <$> braced
   bgroup
-  align <- splitWordTok *> alignDef
+  maybeAlignBar
+  align <- singleAlign
   egroup
   return $ replicate times align
 
+maybeAlignBar :: PandocMonad m => LP m ()
+maybeAlignBar = skipMany $
+  sp
+  <|> () <$ symbol '|'
+  <|> () <$ (symbol '@' >> braced)
+  <|> () <$ (symbol '>' >> braced)
+  <|> () <$ (symbol '<' >> braced)
+  <|> () <$ symbol ':'
+
 parseAligns :: PandocMonad m => LP m [Alignment]
 parseAligns = try $ do
-  let maybeBar = skipMany $
-        sp
-        <|> () <$ symbol '|'
-        <|> () <$ (symbol '@' >> braced)
-        <|> () <$ (symbol '>' >> braced)
-        <|> () <$ (symbol '<' >> braced)
-        <|> () <$ symbol ':'
-
-  let singleAlign = (toList <$> singleton <$> (splitWordTok *> alignDef))
-                      <* (optional braced) <* maybeBar
-
   bgroup
   spaces
-  maybeBar
-  alignChars <- mconcat <$> many (multipleAlign <|> singleAlign)
+  maybeAlignBar
+  let singletonAlign = toList <$> singleton <$> singleAlign
+  aligns <- mconcat <$> many (multipleAlign <|> singletonAlign)
+  spaces
+  maybeAlignBar
   spaces
   egroup
   spaces
-  return alignChars
+  return aligns
 
 tableHeader :: PandocMonad m => Text -> LP m [Blocks]
 tableHeader envname = option [] $ try (tableRowCells envname <*
