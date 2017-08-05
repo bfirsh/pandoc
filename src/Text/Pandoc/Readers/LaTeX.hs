@@ -442,6 +442,13 @@ symbol c = satisfyTok isc
                                     _ -> False
         isc _ = False
 
+anyLetterSymbol :: PandocMonad m => LP m Tok
+anyLetterSymbol = satisfyTok isc
+  where isc (Tok _ Symbol d) = case T.uncons d of
+                                    Just (c, _) -> isLetter c
+                                    _ -> False
+        isc _ = False
+
 symbolIn :: PandocMonad m => [Char] -> LP m Tok
 symbolIn cs = satisfyTok isInCs
   where isInCs (Tok _ Symbol d) = case T.uncons d of
@@ -2214,13 +2221,13 @@ alignDef = do
   let upperCAlign = AlignCenter <$ symbol 'C'
   let upperJAlign = AlignLeft <$ symbol 'J'
   let upperParAlign = AlignLeft <$ symbol 'P'
-  -- let fallbackAlign = AlignLeft <$ isLetter anySymbol
+  let fallbackAlign = AlignLeft <$ anyLetterSymbol
 
   cAlign <|> lAlign <|> rAlign <|> parAlign
     <|> xAlign <|> upperXAlign <|> mAlign <|> bAlign
     <|> upperLAlign <|> upperRAlign <|> upperCAlign
     <|> upperJAlign <|> upperParAlign
-    -- <|> fallbackAlign
+    <|> fallbackAlign
 
 multipleAlign :: PandocMonad m => LP m [Alignment]
 multipleAlign = do
