@@ -1865,6 +1865,7 @@ environments = M.fromList
    , ("tabular", env "tabular"  $ simpTable "tabular" False)
    , ("tabu", env "tabu"  $ simpTable "tabu" False)
    , ("tabulary", env "tabulary"  $ simpTable "tabulary" True)
+   , ("TAB", env "TAB"  $ easyTable)
    , ("adjustbox", env "adjustbox" adjustbox)
    , ("quote", blockQuote <$> env "quote" blocks)
    , ("quotation", blockQuote <$> env "quotation" blocks)
@@ -2331,6 +2332,18 @@ tableContents cols envname = do
                     then replicate cols mempty
                     else header'
   return (header'', rows)
+
+easyTable :: PandocMonad m => LP m Blocks
+easyTable = try $ do
+  wrapped (symbol '(') (symbol ')')
+  skipopts
+  aligns <- parseAligns
+  braced
+  let cols = length aligns
+  let widths = replicate cols 0.0
+  (header', rows) <- tableContents cols "TAB"
+  lookAhead $ controlSeq "end"
+  return $ table mempty (zip aligns widths) header' rows
 
 addTableCaption :: PandocMonad m => Blocks -> LP m Blocks
 addTableCaption = walkM go
