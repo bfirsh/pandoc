@@ -1901,6 +1901,7 @@ environments = M.fromList
    , ("alignat*", mathEnvWith para (Just "aligned") "alignat*")
    , ("empheq", mathEnvWith para (Just "aligned") "empheq")
    , ("flalign", mathEnvWith para (Just "aligned") "flalign")
+   , ("flalign*", mathEnvWith para (Just "aligned") "flalign*")
    , ("tikzpicture", rawVerbEnv "tikzpicture")
    , ("algorithm", rawVerbEnv "algorithm")
    , ("small", env "small" blocks)
