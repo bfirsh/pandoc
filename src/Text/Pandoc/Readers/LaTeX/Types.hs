@@ -30,11 +30,13 @@ Types for LaTeX tokens and macros.
 module Text.Pandoc.Readers.LaTeX.Types ( Tok(..)
                                        , TokType(..)
                                        , Macro(..)
+                                       , DefMacroArg(..)
                                        , Line
                                        , Column )
 where
 import Data.Text (Text)
 import Text.Parsec.Pos (Line, Column)
+import Text.Show.Functions ()
 
 data TokType = CtrlSeq Text | Spaces | Newline | Symbol | Word | Comment |
                Esc1    | Esc2   | Arg Int
@@ -43,6 +45,14 @@ data TokType = CtrlSeq Text | Spaces | Newline | Symbol | Word | Comment |
 data Tok = Tok (Line, Column) TokType Text
      deriving (Eq, Ord, Show)
 
-data Macro = Macro Int (Maybe [Tok]) [Tok]
+-- these covers 99% of macro defs in the wild
+data DefMacroArg = NakedDefMacroArg
+                 | BracedDefMacroArg
+                 | BracketedDefMacroArg
+                 | CtrlSeqSuffixedDefMacroArg Text
+                 | SymbolSuffixedDefMacroArg Char
      deriving Show
 
+data Macro = NewCommandMacro Int (Maybe [Tok]) [Tok] |
+             DefMacro [DefMacroArg] [Tok]
+     deriving Show

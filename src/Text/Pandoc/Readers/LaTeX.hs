@@ -66,7 +66,7 @@ import Text.Pandoc.Parsing hiding (many, optional, withRaw,
                             space, (<|>), spaces, blankline)
 import Text.Pandoc.Shared
 import Text.Pandoc.Readers.LaTeX.Types (Macro(..), Tok(..),
-                            TokType(..))
+                            TokType(..), DefMacroArg(..))
 import Text.Pandoc.Walk
 import Text.Pandoc.Error (PandocError(PandocParsecError, PandocMacroLoop))
 
@@ -385,7 +385,7 @@ doMacros n = do
                 macros <- sMacros <$> getState
                 case M.lookup name macros of
                      Nothing -> return ()
-                     Just (Macro numargs optarg newtoks) -> do
+                     Just (NewCommandMacro numargs optarg newtoks) -> do
                        setInput ts
                        let getarg = spaces >> bracedOrSingleTok
                        args <- case optarg of
@@ -402,6 +402,30 @@ doMacros n = do
                        if n > 20  -- detect macro expansion loops
                           then throwError $ PandocMacroLoop (T.unpack name)
                           else doMacros (n + 1)
+                     Just (DefMacro macroArgs newtoks) -> do
+                       setInput ts
+                       let makeParser = \x -> spaces *> makeDefMacroParser x
+                       let parsers = map makeParser macroArgs
+                       let numargs = length parsers
+                       args <- sequence parsers
+                       let addTok (Tok _ (Arg i) _) acc | i > 0
+                                                        , i <= numargs =
+                                 map (setpos spos) (args !! (i - 1)) ++ acc
+                           addTok t acc = setpos spos t : acc
+                       ts' <- getInput
+                       setInput $ foldr addTok ts' newtoks
+                       if n > 20  -- detect macro expansion loops
+                          then throwError $ PandocMacroLoop (T.unpack name)
+                          else doMacros (n + 1)
+
+makeDefMacroParser :: PandocMonad m => DefMacroArg -> LP m [Tok]
+makeDefMacroParser NakedDefMacroArg = do
+  let end = sp <|> (() <$ symbol '[') <|> (() <$ symbol '{')
+  braced <|> (manyTill anyTok $ lookAhead end)
+makeDefMacroParser BracedDefMacroArg = braced
+makeDefMacroParser BracketedDefMacroArg = bracketed
+makeDefMacroParser (SymbolSuffixedDefMacroArg c) = braced <* symbol c
+makeDefMacroParser (CtrlSeqSuffixedDefMacroArg name) = manyTill anyTok (controlSeq name)
 
 setpos :: (Line, Column) -> Tok -> Tok
 setpos spos (Tok _ tt txt) = Tok spos tt txt
@@ -1591,7 +1615,7 @@ authors = try $ do
 
 macroDef :: PandocMonad m => LP m Blocks
 macroDef = do
-  mempty <$ ((commandDef <|> environmentDef) <* doMacros 0)
+  mempty <$ ((commandDef <|> environmentDef <|> defDef) <* doMacros 0)
   where commandDef = do
           (name, macro') <- newcommand
           guardDisabled Ext_latex_macros <|>
@@ -1603,13 +1627,14 @@ macroDef = do
                 M.insert name macro1 (sMacros s) }
                updateState $ \s -> s{ sMacros =
                 M.insert ("end" <> name) macro2 (sMacros s) }
+        defDef = do
+          (name, macro') <- defCommand
+          guardDisabled Ext_latex_macros <|>
+           updateState (\s -> s{ sMacros = M.insert name macro' (sMacros s) })
         -- @\newenvironment{envname}[n-args][default]{begin}{end}@
         -- is equivalent to
         -- @\newcommand{\envname}[n-args][default]{begin}@
         -- @\newcommand{\endenvname}@
-
-maybeBraced :: PandocMonad m => LP m a -> LP m a
-maybeBraced p = (bgroup *> p <* egroup) <|> p
 
 bracedOrSingleTok :: PandocMonad m => LP m [Tok]
 bracedOrSingleTok = braced <|> (toList <$> singleton <$> anyTok)
@@ -1637,7 +1662,7 @@ newcommand = withVerbatimMode $ do
     case M.lookup name macros of
          Just _ -> report $ MacroAlreadyDefined (T.unpack name) pos
          Nothing -> return ()
-  return (name, Macro numargs optarg contents)
+  return (name, NewCommandMacro numargs optarg contents)
 
 newenvironment :: PandocMonad m => LP m (Text, Macro, Macro)
 newenvironment = withVerbatimMode $ do
@@ -1661,17 +1686,43 @@ newenvironment = withVerbatimMode $ do
     case M.lookup name macros of
          Just _ -> report $ MacroAlreadyDefined (T.unpack name) pos
          Nothing -> return ()
-  return (name, Macro numargs optarg startcontents,
-             Macro 0 Nothing endcontents)
+  return (name, NewCommandMacro numargs optarg startcontents,
+             NewCommandMacro 0 Nothing endcontents)
 
--- TODO: don't ignore (it's hard....)
-ignoreDef :: PandocMonad m => LP m Blocks
-ignoreDef = do
+defCommand :: PandocMonad m => LP m (Text, Macro)
+defCommand = try $ withVerbatimMode $ do
   spaces
-  maybeBraced $ many (anyControlSeq <|> anyArg)
+  controlSeq "def"
   spaces
-  (() <$ braced) <|> (() <$ tok)
-  return mempty
+  Tok _ (CtrlSeq name) _ <- anyControlSeq
+  spaces
+  args <- many defMacroArg
+  spaces
+  contents <- bracedOrSingleTok
+  return (name, DefMacro args contents)
+
+defMacroArg :: PandocMonad m => LP m DefMacroArg
+defMacroArg = controlSeqSuffixedArg
+              <|> symbolSuffixedArg
+              <|> nakedArg
+              <|> bracedArg
+              <|> bracketedArg
+  where nakedArg     = NakedDefMacroArg <$ anyArg
+        bracketedArg = BracketedDefMacroArg <$ bracketed
+        bracedArg    = try $ BracedDefMacroArg <$ (bgroup >> anyArg >> egroup)
+        controlSeqSuffixedArg = try $ do
+          anyArg
+          spaces
+          Tok _ (CtrlSeq name) _ <- anyControlSeq
+          return $ CtrlSeqSuffixedDefMacroArg name
+        symbolSuffixedArg = try $ do
+          anyArg
+          (Tok _ Symbol t) <- anySymbol
+          case T.uncons t of
+               Just (c, _) | not (c `elem` ("{[" :: String)) ->
+                                return $ SymbolSuffixedDefMacroArg c
+                           | otherwise -> fail "Bad def suffix"
+               Nothing -> fail "Empty symbol"
 
 -- TODO: don't ignore (it's hard....)
 ignoreNewColumnType :: PandocMonad m => LP m Blocks
@@ -1827,7 +1878,6 @@ blockCommands = M.fromList $
    , ("colorbox", coloredBlock "background-color")
    , ("scalebox", braced >> blocks)
    , ("color", coloredBlock "color")
-   , ("def", ignoreDef)
    , ("newcolumntype", ignoreNewColumnType)
    , ("emph", (divWith ("", ["emph"], []) <$> blocks))  -- TODO: in html!!!
    , ("textbf", (divWith ("", ["textbf"], []) <$> blocks))  -- TODO: in html!!!
