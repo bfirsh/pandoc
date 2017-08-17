@@ -1414,6 +1414,7 @@ inlineCommands = M.fromList $
    -- balancing. always assume whatever if condition holds.
   , ("else", mempty <$ (manyTill anyTok $ controlSeq "fi"))
   , ("parbox", skipopts >> braced >> tok)
+  , ("pdfoutput", try $ symbol '=' >> tok)
   ]
 
 ifstrequal :: PandocMonad m => LP m Inlines
