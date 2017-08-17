@@ -1414,6 +1414,10 @@ inlineCommands = M.fromList $
    -- balancing. always assume whatever if condition holds.
   , ("else", mempty <$ (manyTill anyTok $ controlSeq "fi"))
   , ("parbox", skipopts >> braced >> tok)
+
+   -- pinforms3 ugghh
+   , ("AUTHOR", spanWith ("", ["author"], []) <$> inline)
+   , ("AFF", spanWith ("", ["affiliation"], []) <$> inline)
   ]
 
 ifstrequal :: PandocMonad m => LP m Inlines
@@ -1825,9 +1829,7 @@ blockCommands :: PandocMonad m => M.Map Text (LP m Blocks)
 blockCommands = M.fromList $
    [ ("par", mempty <$ skipopts)
    , ("parbox",  braced >> grouped blocks)
-   , ("title", mempty <$ (skipopts *>
-                             (grouped inline >>= addMeta "title")
-                         <|> (grouped block >>= addMeta "title")))
+   , ("title", title)
    , ("subtitle", mempty <$ (skipopts *> tok >>= addMeta "subtitle"))
    , ("author", mempty <$ (skipopts *> authors))
    -- -- in letter class, temp. store address & sig as title, author
@@ -1892,6 +1894,11 @@ blockCommands = M.fromList $
    , ("newblock", mempty <$ skipopts)
    , ("twocolumn", parseToksToBlocks bracketed)
    , ("pdfoutput",  try $ mempty <$ (symbol '=' >> tok))
+
+   -- pinforms3 ugghh
+   , ("ABSTRACT", mempty <$ (parseToksToBlocks braced >>= addMeta "abstract"))
+   , ("ARTICLEAUTHORS", (divWith ("", ["authors"], []) <$> blocks))
+   , ("TITLE", title)
    ]
 
 
@@ -2032,6 +2039,11 @@ obeylines = do
                                       reverse . dropWhile isLineBreak
         isLineBreak LineBreak     = True
         isLineBreak _             = False
+
+title :: PandocMonad m => LP m Blocks
+title = mempty <$ (skipopts *>
+                       (grouped inline >>= addMeta "title")
+                   <|> (grouped block >>= addMeta "title"))
 
 ieeeBiography :: PandocMonad m => LP m Blocks
 ieeeBiography = do
