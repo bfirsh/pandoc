@@ -1894,6 +1894,7 @@ blockCommands = M.fromList $
    , ("newblock", mempty <$ skipopts)
    , ("twocolumn", parseToksToBlocks bracketed)
    , ("pdfoutput",  try $ mempty <$ (symbol '=' >> tok))
+   , ("vskip", try $ mempty <$ (spaces >> manyTill tok sp))
 
    -- pinforms3 ugghh
    , ("ABSTRACT", mempty <$ (parseToksToBlocks braced >>= addMeta "abstract"))
