@@ -1316,8 +1316,7 @@ inlineCommands = M.fromList $
   , ("verb", doverb)
   , ("lstinline", dolstinline)
   , ("Verb", doverb)
-  , ("url", ((unescapeURL . T.unpack . untokenize) <$> braced) >>= \url ->
-                  pure (link url "" (str url)))
+  , ("url", url)
   , ("href", (unescapeURL . toksToString <$>
                  braced <* optional sp) >>= \url ->
                    tok >>= \lab -> pure (link url "" lab))
@@ -1410,6 +1409,8 @@ inlineCommands = M.fromList $
        ((spanWith ("",["multirow-cell"],[])) <$>  inline))
   , ("thanks", extractSpaces (spanWith ("",["thanks"],[])) <$> inline)
   , ("color", coloredInline "color")
+  , ("email", url)
+
    -- if there is an else block, it's possible it will break environment
    -- balancing. always assume whatever if condition holds.
   , ("else", mempty <$ (manyTill anyTok $ controlSeq "fi"))
@@ -1442,6 +1443,11 @@ ttfamily = typewriter <$> tok
 
 typewriter :: Inlines -> Inlines
 typewriter = code . stringify . toList
+
+url :: PandocMonad m => LP m Inlines
+url = do
+  u <- (unescapeURL . T.unpack . untokenize) <$> braced
+  return $ link u "" (str u)
 
 rawInlineOr :: PandocMonad m => Text -> LP m Inlines -> LP m Inlines
 rawInlineOr name' fallback = do
@@ -1613,37 +1619,70 @@ updateMeta field val = updateState $ \st ->
 authors :: PandocMonad m => LP m ()
 authors = try $ do
   bgroup
-  let oneAuthor = mconcat <$>
-       many1 (notFollowedBy' (controlSeq "and") >>
-               (inline
-                <|> mempty <$ blockCommand
-                <|> (str "\n" <$ many1 newlineTok)))
-               -- skip e.g. \vspace{10pt}
   auths <- sepBy oneAuthor (controlSeq "and")
   egroup
   addMeta "author" (map trimInlines auths)
+
+oneAuthor :: PandocMonad m => LP m Inlines
+oneAuthor = do
+  name <- mconcat <$> nameParts
+  affils <- parseAffils <$> optional (controlSeq "inst" >> braced)
+  spaces
+  let kvs = map (\a -> ("affiliation-abbrev", T.unpack a)) affils
+  return $ spanWith ("", [], kvs) name
+  where nameParts = many1
+          (notFollowedBy' (controlSeq "and" <|> controlSeq "inst") >>
+               authorInline)
+               -- skip e.g. \vspace{10pt}
+        parseAffils optToks =
+          case optToks of
+               Just toks' -> T.splitOn "," $ untokenize toks'
+               Nothing -> []
+
+authorInline :: PandocMonad m => LP m Inlines
+authorInline = inline
+               <|> mempty <$ blockCommand
+               <|> (str "\n" <$ many1 newlineTok)
+
+institute :: PandocMonad m => LP m ()
+institute = do
+  bgroup
+  names <- sepBy oneInstitute (controlSeq "and")
+  egroup
+  let namesWithIndices = reverse $ zip [0 :: Int ..] names -- TODO(andreas): why reverse?
+  currentAuthors <- authorsInState <$> getState
+  let newAuthors = foldr addInstitute currentAuthors namesWithIndices
+  updateMeta "author" newAuthors
+  where addInstitute (index, name) auths =
+          addAffiliation auths (show $ index + 1) name
+        oneInstitute = mconcat <$> many1 (
+          notFollowedBy' (controlSeq "and") >> authorInline)
+
+authorsInState :: LaTeXState -> Inlines
+authorsInState st =
+  case lookupMeta "author" (sMeta st) of
+         Just (MetaList mils) -> fromList $ concat $ map extractInlines mils
+         _ -> fromList []
+  where extractInlines (MetaInlines ils) = ils
+        extractInlines _ = []
 
 icmlaffiliation :: PandocMonad m => LP m ()
 icmlaffiliation = do
   abbrev <- T.unpack <$> untokenize <$> braced
   name <- tok
   st <- getState
-  let extractInlines (MetaInlines ils) = ils
-      extractInlines _ = []
-      currentAuthors = case lookupMeta "author" (sMeta st) of
-                            Just (MetaList mils) -> concat $ map extractInlines mils
-                            _ -> []
-      auths = addAffiliation currentAuthors abbrev name
+  let auths = addAffiliation (authorsInState st) abbrev name
   updateMeta "author" auths
 
-addAffiliation :: [Inline] -> String -> Inlines -> Inlines
+addAffiliation :: Inlines -> String -> Inlines -> Inlines
 addAffiliation auths abbrev name =
   fromList newAuthList <> affil
-  where numAffils = length $ filter (hasClass "affiliation") auths
+  where auths' = toList auths
+        numAffils = length $ filter (hasClass "affiliation") auths'
         superNumber = Superscript $ toList $ text $ show $ 1 + numAffils
         affilList = [superNumber] ++ toList name -- TODO nicer
         affil = spanWith ("", ["affiliation"], []) $ fromList affilList
-        newAuthList = map updateAffils auths
+        newAuthList = map updateAffils auths'
         updateAffils (Span (id', classes, kvs) txt) | ("affiliation-abbrev", abbrev) `elem` kvs = Span (id', classes, kvs) $ txt ++ [superNumber] -- TODO nicer
         updateAffils x = x
 
@@ -1945,6 +1984,7 @@ blockCommands = M.fromList $
    , ("twocolumn", mempty <$ twocolumn)
    , ("pdfoutput",  try $ mempty <$ (symbol '=' >> tok))
    , ("vskip", mempty <$ (spaces >> manyTill anyTok sp))
+   , ("institute", mempty <$ institute)
 
    -- pinforms3 ugghh
    , ("ABSTRACT", mempty <$ (parseToksToBlocks braced >>= addMeta "abstract"))
