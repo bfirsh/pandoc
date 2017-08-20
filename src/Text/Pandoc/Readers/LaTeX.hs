@@ -582,6 +582,7 @@ bracketedDumb parser = try $ do
   symbol '['
   mconcat <$> manyTill parser (symbol ']')
 
+-- these two functions are ugly
 parseToksToBlocks :: PandocMonad m => LP m [Tok] -> LP m Blocks
 parseToksToBlocks tokenizer = do
   toks <- tokenizer
@@ -590,7 +591,6 @@ parseToksToBlocks tokenizer = do
   case res of
        Right r -> return r
        Left e -> fail (show e)
-
 
 dimenarg :: PandocMonad m => LP m Text
 dimenarg = try $ do
@@ -1415,7 +1415,7 @@ inlineCommands = M.fromList $
   , ("else", mempty <$ (manyTill anyTok $ controlSeq "fi"))
   , ("parbox", skipopts >> braced >> tok)
 
-   -- pinforms3 ugghh
+   -- pinforms3 ugghh -- TODO: put these in meta instead
    , ("AUTHOR", spanWith ("", ["author"], []) <$> inline)
    , ("AFF", spanWith ("", ["affiliation"], []) <$> inline)
   ]
@@ -1604,6 +1604,12 @@ addMeta :: PandocMonad m => ToMetaValue a => String -> a -> LP m ()
 addMeta field val = updateState $ \st ->
    st{ sMeta = addMetaField field val $ sMeta st }
 
+updateMeta :: PandocMonad m => ToMetaValue a => String -> a -> LP m ()
+updateMeta field val = updateState $ \st ->
+   st{ sMeta = updateMetaField field val $ sMeta st }
+   where updateMetaField key val' (Meta meta) =
+           Meta $ M.insert key (MetaList [toMetaValue val']) meta
+
 authors :: PandocMonad m => LP m ()
 authors = try $ do
   bgroup
@@ -1616,6 +1622,50 @@ authors = try $ do
   auths <- sepBy oneAuthor (controlSeq "and")
   egroup
   addMeta "author" (map trimInlines auths)
+
+icmlaffiliation :: PandocMonad m => LP m ()
+icmlaffiliation = do
+  abbrev <- T.unpack <$> untokenize <$> braced
+  name <- tok
+  st <- getState
+  let extractInlines (MetaInlines ils) = ils
+      extractInlines _ = []
+      currentAuthors = case lookupMeta "author" (sMeta st) of
+                            Just (MetaList mils) -> concat $ map extractInlines mils
+                            _ -> []
+      auths = addAffiliation currentAuthors abbrev name
+  updateMeta "author" auths
+
+addAffiliation :: [Inline] -> String -> Inlines -> Inlines
+addAffiliation auths abbrev name =
+  fromList newAuthList <> affil
+  where numAffils = length $ filter (hasClass "affiliation") auths
+        superNumber = Superscript $ toList $ text $ show $ 1 + numAffils
+        affilList = [superNumber] ++ toList name -- TODO nicer
+        affil = spanWith ("", ["affiliation"], []) $ fromList affilList
+        newAuthList = map updateAffils auths
+        updateAffils (Span (id', classes, kvs) txt) | ("affiliation-abbrev", abbrev) `elem` kvs = Span (id', classes, kvs) $ txt ++ [superNumber] -- TODO nicer
+        updateAffils x = x
+
+hasClass :: String -> Inline -> Bool
+hasClass cls (Span (_, classes, _) _) = cls `elem` classes
+hasClass _ _ = False
+
+icmlauthorlist :: PandocMonad m => LP m ()
+icmlauthorlist = do
+  auths <- many icmlauthor
+  addMeta "author" auths
+
+icmlauthor :: PandocMonad m => LP m Inlines
+icmlauthor = do
+    spaces
+    controlSeq "icmlauthor"
+    name <- tok
+    affiliations <- T.splitOn "," <$> untokenize <$> braced
+    let kvs = map (\a -> ("affiliation-abbrev", T.unpack a)) affiliations
+    let attr = ("", ["author"], kvs)
+    spaces
+    return $ spanWith attr name
 
 macroDef :: PandocMonad m => LP m Blocks
 macroDef = do
@@ -1892,14 +1942,18 @@ blockCommands = M.fromList $
    , ("text", blocks)
    , ("bibitem", bibitem)
    , ("newblock", mempty <$ skipopts)
-   , ("twocolumn", parseToksToBlocks bracketed)
+   , ("twocolumn", mempty <$ twocolumn)
    , ("pdfoutput",  try $ mempty <$ (symbol '=' >> tok))
-   , ("vskip", try $ mempty <$ (spaces >> manyTill tok sp))
+   , ("vskip", mempty <$ (spaces >> manyTill anyTok sp))
 
    -- pinforms3 ugghh
    , ("ABSTRACT", mempty <$ (parseToksToBlocks braced >>= addMeta "abstract"))
    , ("ARTICLEAUTHORS", (divWith ("", ["authors"], []) <$> blocks))
    , ("TITLE", title)
+
+   -- icml
+   , ("icmltitle", title)
+   , ("icmlaffiliation", mempty <$ icmlaffiliation)
    ]
 
 
@@ -1969,6 +2023,9 @@ environments = M.fromList
    , ("IEEEbiography", env "IEEEbiography" ieeeBiography)
    , ("thebibliography", env "thebibliography" thebibliography)
    , ("figwindow", env "figwindow" figwindow)
+
+   -- icml
+   , ("icmlauthorlist", env "icmlauthorlist" (mempty <$ icmlauthorlist))
    ]
 
 environment :: PandocMonad m => LP m Blocks
@@ -2045,6 +2102,12 @@ title :: PandocMonad m => LP m Blocks
 title = mempty <$ (skipopts *>
                        (grouped inline >>= addMeta "title")
                    <|> (grouped block >>= addMeta "title"))
+
+twocolumn :: PandocMonad m => LP m ()
+twocolumn = do
+  toks <- bracketed
+  inp <- getInput
+  setInput $ toks ++ inp
 
 ieeeBiography :: PandocMonad m => LP m Blocks
 ieeeBiography = do
@@ -2381,6 +2444,9 @@ tableCellParagraph envname = plain <$> mconcat <$> many1 tableCellInline
 
 loudTrace :: Show a => a -> a
 loudTrace s = trace ("########### " ++ (show s)) s
+
+loudTraceM :: (PandocMonad m, Show a) => a -> LP m a
+loudTraceM s = return $ loudTrace s
 
 simpTable :: PandocMonad m => Text -> Bool -> LP m Blocks
 simpTable envname hasWidthParameter = try $ do
