@@ -2067,6 +2067,10 @@ environments = M.fromList
 
    -- icml
    , ("icmlauthorlist", env "icmlauthorlist" (mempty <$ icmlauthorlist))
+
+   -- cjk
+   , ("CJK", env "CJK" $ braced *> braced *> blocks)
+   , ("CJK*", env "CJK*" $ braced *> braced *> blocks)
    ]
 
 environment :: PandocMonad m => LP m Blocks
