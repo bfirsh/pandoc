@@ -1674,6 +1674,7 @@ icmlaffiliation = do
   let auths = addAffiliation (authorsInState st) abbrev name
   updateMeta "author" auths
 
+-- TODO(andreas): use walkM instead
 addAffiliation :: Inlines -> String -> Inlines -> Inlines
 addAffiliation auths abbrev name =
   fromList newAuthList <> affil
@@ -1970,13 +1971,13 @@ blockCommands = M.fromList $
    , ("scalebox", braced >> blocks)
    , ("color", coloredBlock "color")
    , ("newcolumntype", ignoreNewColumnType)
-   , ("emph", (divWith ("", ["emph"], []) <$> blocks))  -- TODO: in html!!!
-   , ("textbf", (divWith ("", ["textbf"], []) <$> blocks))  -- TODO: in html!!!
-   , ("texttt", (divWith ("", ["texttt"], []) <$> blocks))  -- TODO: in html!!!
-   , ("small", (divWith ("", ["small"], []) <$> blocks))  -- TODO: in html!!!
+   , ("emph", (divWith ("", ["emph"], []) <$> grouped block))  -- TODO: in html!!!
+   , ("textbf", (divWith ("", ["textbf"], []) <$> grouped block))  -- TODO: in html!!!
+   , ("texttt", (divWith ("", ["texttt"], []) <$> grouped block))  -- TODO: in html!!!
+   , ("small", (divWith ("", ["small"], []) <$> grouped block))  -- TODO: in html!!!
    , ("multirow", braced >> braced >>
-       ((divWith ("",["multirow-cell"],[])) <$> blocks))  -- TODO: parses but doesn't actually work!!!
-   , ("thanks", (divWith ("",["thanks"],[]) <$> blocks)) -- TOOD: in html!!!
+       ((divWith ("",["multirow-cell"],[])) <$> grouped block))  -- TODO: parses but doesn't actually work!!!
+   , ("thanks", (divWith ("",["thanks"],[]) <$> grouped block)) -- TOOD: in html!!!
    , ("else", mempty <$ (manyTill anyTok $ controlSeq "fi"))
    , ("text", blocks)
    , ("bibitem", bibitem)
