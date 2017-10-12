@@ -1423,6 +1423,9 @@ inlineCommands = M.fromList $
    , ("AFF", spanWith ("", ["affiliation"], []) <$> inline)
 
   , ("mbox", tok) -- doesn't do anything outside math
+
+  -- another way of doing subfigures
+   , ("subfloat", skipopts *> tok)
   ]
 
 ifstrequal :: PandocMonad m => LP m Inlines

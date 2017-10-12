@@ -118,6 +118,9 @@ tests = [ testGroup "basic"
           , "wrapfigure with options" =:
             "\\begin{wrapfigure}[1]{r}[2]{0.25\\textwidth}\\includegraphics{foo.png}\\caption{Foo}\\end{wrapfigure}" =?>
             para (image "foo.png" "fig:" (text "Foo"))
+          , "subfloat" =:
+            "\\begin{figure}[h]\\subfloat[]{\\includegraphics{foo.png}}\\caption{Foo}\\end{figure}" =?>
+            para (image "foo.png" "fig:" (text "Foo"))
           ]
 
         , let hex = ['0'..'9']++['a'..'f'] in
