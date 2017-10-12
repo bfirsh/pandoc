@@ -1421,6 +1421,8 @@ inlineCommands = M.fromList $
    -- pinforms3 ugghh -- TODO: put these in meta instead
    , ("AUTHOR", spanWith ("", ["author"], []) <$> inline)
    , ("AFF", spanWith ("", ["affiliation"], []) <$> inline)
+
+  , ("mbox", tok) -- doesn't do anything outside math
   ]
 
 ifstrequal :: PandocMonad m => LP m Inlines

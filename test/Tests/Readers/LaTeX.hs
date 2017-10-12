@@ -129,6 +129,12 @@ tests = [ testGroup "basic"
             mconcat ["^^" <> T.pack [i] | i <- hex] =?>
             para (str $ ['p'..'y']++['!'..'&'])
           ]
+
+        , testGroup "inlines"
+          [ "mbox" =:
+            "\\mbox{Hello}" =?>
+            para "Hello"
+          ]
         ]
 
 baseCitation :: Citation
