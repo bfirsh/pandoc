@@ -1322,10 +1322,10 @@ inlineCommands = M.fromList $
   , ("href", (unescapeURL . toksToString <$>
                  braced <* optional sp) >>= \url ->
                    tok >>= \lab -> pure (link url "" lab))
-  , ("includegraphics", do optional $ bracketedDumb inline
+  , ("includegraphics", do options <- option [] keyvals
                            src <- unescapeURL . T.unpack .
                                     removeDoubleQuotes . untokenize <$> braced
-                           mkImage [] src)
+                           mkImage options src)
   , ("enquote", enquote)
   , ("cite", citation "cite" NormalCitation False)
   , ("Cite", citation "Cite" NormalCitation False)
