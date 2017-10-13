@@ -775,8 +775,10 @@ keyval = try $ do
   Tok _ Word key <- satisfyTok isWordTok
   let isSpecSym (Tok _ Symbol t) = t `elem` [".",":","-","|","\\"]
       isSpecSym _ = False
+  optional sp
   val <- option [] $ do
            symbol '='
+           optional sp
            braced <|> (many1 (satisfyTok isWordTok <|> satisfyTok isSpecSym
                                <|> anyControlSeq))
   optional sp
