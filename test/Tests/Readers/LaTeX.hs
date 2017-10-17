@@ -148,6 +148,9 @@ tests = [ testGroup "basic"
           , "Image with options with spaces" =:
             "\\includegraphics[width=12cm, height = 5cm]{foo.png}" =?>
             para (imageWith ("", [], [("width", "12cm"), ("height", "5cm")]) "foo.png" "" "image")
+          , "Image with options with multiple values" =:
+            "\\includegraphics[clip, trim=2cm 6.75cm 1cm 9cm, width=3.2in]{cmc_csa1.pdf}" =?>
+            para (imageWith ("", [], [("width", "3.2in")]) "cmc_csa1.pdf" "" "image")
           ]
 
         , let hex = ['0'..'9']++['a'..'f'] in

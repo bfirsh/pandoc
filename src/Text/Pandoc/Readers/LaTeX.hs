@@ -488,10 +488,12 @@ matchWord s = satisfyTok isWord
 sp :: PandocMonad m => LP m ()
 sp = whitespace <|> endline
 
+isSpaceTok :: Tok -> Bool
+isSpaceTok (Tok _ Spaces _) = True
+isSpaceTok _ = False
+
 whitespace :: PandocMonad m => LP m ()
 whitespace = () <$ satisfyTok isSpaceTok
-  where isSpaceTok (Tok _ Spaces _) = True
-        isSpaceTok _ = False
 
 newlineTok :: PandocMonad m => LP m ()
 newlineTok = () <$ satisfyTok isNewlineTok
@@ -780,7 +782,7 @@ keyval = try $ do
            symbol '='
            optional sp
            braced <|> (many1 (satisfyTok isWordTok <|> satisfyTok isSpecSym
-                               <|> anyControlSeq))
+                               <|> anyControlSeq <|> satisfyTok isSpaceTok))
   optional sp
   optional (symbol ',')
   optional sp
