@@ -1,0 +1,7 @@
+version: '2'
+services:
+  pandoc:
+    build:
+      image: arxivvanity/pandoc
+      dockerfile: Dockerfile
+    cached: true

@@ -1,0 +1,14 @@
+- name: "Push Git commit tag to Docker Hub"
+  service: pandoc
+  type: push
+  tag: engrafo
+  image_name: arxivvanity/pandoc
+  encrypted_dockercfg_path: .codeship.dockercfg
+  image_tag: "{{.CommitID}}"
+- name: "Push latest tag to Docker Hub"
+  service: pandoc
+  type: push
+  tag: engrafo
+  image_name: arxivvanity/pandoc
+  encrypted_dockercfg_path: .codeship.dockercfg
+  image_tag: latest
