@@ -1426,6 +1426,10 @@ inlineCommands = M.fromList $
 
   -- another way of doing subfigures
    , ("subfloat", skipopts *> tok)
+
+   -- IEEE author styling. just ignore.
+   , ("IEEEauthorblockN", tok)
+   , ("IEEEauthorblockA", tok)
   ]
 
 ifstrequal :: PandocMonad m => LP m Inlines
